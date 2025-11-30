@@ -615,80 +615,209 @@ export default function ProductUploadPage() {
     try {
       const formData = new FormData();
 
-      // Build JSON payload
-      const payload = {
-        product: {
-          code: productCode,
-          name: productName,
-          description: productDescription || null,
-          stock: Number(productStock),
-          price: Number(productPrice),
-          url: productUrl || null,
-          reference_url: referenceProductUrl || null,
-        },
-        reference_images: referenceImages.map((img, index) => ({
-          id: img.id,
-          filename: img.file ? img.file.name : `reference-${index}.jpg`,
-          is_primary: img.isPrimary,
-        })),
-        visual_creation: selectedVisualTypes.map(type => {
-          const panel = visualPanels[type];
-          return {
-            type,
-            count: panel.count,
-            style: panel.style,
-            description_text: panel.description || null,
-            description_audio_filename: panel.descriptionAudioBlob ? `visual_${type}_desc.webm` : null,
-            influencer: panel.influencer || null,
-            platforms: panel.platforms,
-            size: panel.size,
-            background_image_filename: panel.backgroundImage ? panel.backgroundImage.name : (visualBackgroundImage ? visualBackgroundImage.name : null),
-            background_description: panel.backgroundDescription || visualBackgroundDescription || null,
-            referenceMode: panel.referenceMode,
-          };
-        }),
-        video_creation: selectedVideoTypes.map(type => {
-          const panel = videoPanels[type];
-          return {
-            type,
-            count: panel.count,
-            platforms: panel.platforms,
-            description_text: panel.description || null,
-            description_audio_filename: panel.descriptionAudioBlob ? `video_${type}_desc.webm` : null,
-            duration_seconds: panel.duration,
-            style: panel.style,
-            cta_text: panel.ctaText || null,
-            influencer: panel.influencer || null,
-            size: panel.size,
-            background_image_filename: panel.backgroundImage ? panel.backgroundImage.name : (videoBackgroundImage ? videoBackgroundImage.name : null),
-            background_description: panel.backgroundDescription || videoBackgroundDescription || null,
-            referenceMode: panel.referenceMode,
-            reference_video: panel.referenceVideo ? {
-              filename: panel.referenceVideo.name,
-              audio_filename: panel.referenceAudio ? `ref_video_${type}_audio.webm` : null,
-              use_original_audio: panel.useOriginalAudio,
-            } : null,
-          };
-        }),
-        keywords: keywords || null,
-        target_audience: targetAudience || null,
-        meta: {
-          created_by_user: user?.id || 'unknown',
-          created_at: new Date().toISOString(),
-          source: 'bolt_ui_v2',
-        },
-      };
+      // Build FLAT payload - NO nested objects, NO arrays
+      // Only "Field Name": "User Value" format
+      const payload: Record<string, string> = {};
 
+      // 1) ÜRÜN REFERANS GÖRSELİ (Primary reference image)
+      const primaryImage = referenceImages.find(img => img.isPrimary) || referenceImages[0];
+      if (primaryImage && primaryImage.file) {
+        payload['Ürün Referans Görseli'] = primaryImage.file.name;
+      }
+
+      // 2) ÜRÜN BİLGİLERİ
+      payload['Ürün Kodu'] = productCode;
+      payload['Ürün Adı'] = productName;
+      payload['Ürün Açıklaması'] = productDescription || '';
+      payload['Ürün Stok Adedi'] = productStock;
+      payload['Ürün Fiyatı'] = productPrice;
+      payload['Ürün Linki'] = productUrl || '';
+      payload['Benzer Referans Ürün Linki'] = referenceProductUrl || '';
+
+      // 3) GÖRSEL OLUŞTURMA - Only send selected types
+      selectedVisualTypes.forEach(type => {
+        const panel = visualPanels[type];
+
+        if (type === 'studio') {
+          // 3.1 Stüdyo Çekimi
+          payload['Stüdyo Çekimi Görsel Sayısı'] = panel.count.toString();
+          payload['Stüdyo Çekimi Stil'] = panel.style;
+          payload['Stüdyo Çekimi Görsel Açıklaması'] = panel.description || '';
+
+          // Get influencer name
+          const influencer = influencers.find(inf => inf.id === panel.influencer);
+          payload['Stüdyo Çekimi Influencer'] = influencer ? influencer.name : '';
+
+          // Platforms as comma-separated string
+          const platformNames = panel.platforms.map(pid => {
+            const p = PLATFORMS.find(plat => plat.id === pid);
+            return p ? p.name : '';
+          }).filter(Boolean);
+          payload['Stüdyo Çekimi Platformlar'] = platformNames.join(', ');
+
+          payload['Stüdyo Çekimi Görsel Boyutu'] = IMAGE_SIZES.find(s => s.value === panel.size)?.label || panel.size;
+
+          if (panel.backgroundImage) {
+            payload['Stüdyo Çekimi Arka Plan Görseli'] = panel.backgroundImage.name;
+          } else if (visualBackgroundImage) {
+            payload['Stüdyo Çekimi Arka Plan Görseli'] = visualBackgroundImage.name;
+          }
+        } else if (type === 'story') {
+          // 3.2 Hikaye Post Paylaşımı
+          payload['Hikaye Post Görsel Sayısı'] = panel.count.toString();
+          payload['Hikaye Post Stil'] = panel.style;
+          payload['Hikaye Post Görsel Açıklaması'] = panel.description || '';
+
+          const influencer = influencers.find(inf => inf.id === panel.influencer);
+          payload['Hikaye Post Influencer'] = influencer ? influencer.name : '';
+
+          const platformNames = panel.platforms.map(pid => {
+            const p = PLATFORMS.find(plat => plat.id === pid);
+            return p ? p.name : '';
+          }).filter(Boolean);
+          payload['Hikaye Post Platformlar'] = platformNames.join(', ');
+
+          payload['Hikaye Post Görsel Boyutu'] = IMAGE_SIZES.find(s => s.value === panel.size)?.label || panel.size;
+
+          if (panel.backgroundImage) {
+            payload['Hikaye Post Arka Plan Görseli'] = panel.backgroundImage.name;
+          } else if (visualBackgroundImage) {
+            payload['Hikaye Post Arka Plan Görseli'] = visualBackgroundImage.name;
+          }
+        } else if (type === 'reference') {
+          // 3.3 Referans Görsel
+          payload['Referans Görsel Sayısı'] = panel.count.toString();
+          payload['Referans Görsel Stil'] = panel.style;
+          payload['Referans Görsel Açıklaması'] = panel.description || '';
+
+          const influencer = influencers.find(inf => inf.id === panel.influencer);
+          payload['Referans Görsel Influencer'] = influencer ? influencer.name : '';
+
+          const platformNames = panel.platforms.map(pid => {
+            const p = PLATFORMS.find(plat => plat.id === pid);
+            return p ? p.name : '';
+          }).filter(Boolean);
+          payload['Referans Görsel Platformlar'] = platformNames.join(', ');
+
+          payload['Referans Görsel Boyutu'] = IMAGE_SIZES.find(s => s.value === panel.size)?.label || panel.size;
+
+          if (panel.backgroundImage) {
+            payload['Referans Görsel Arka Plan Görseli'] = panel.backgroundImage.name;
+          } else if (visualBackgroundImage) {
+            payload['Referans Görsel Arka Plan Görseli'] = visualBackgroundImage.name;
+          }
+
+          // Reference mode
+          payload['Referans Görsel Modu'] = panel.referenceMode === 'exact' ? 'Birebir Aynı Olsun' : 'Benzer Olsun';
+        }
+      });
+
+      // 4) VİDEO OLUŞTURMA - Only send selected types
+      selectedVideoTypes.forEach(type => {
+        const panel = videoPanels[type];
+
+        if (type === 'promo') {
+          // 4.1 Tanıtım Videosu
+          payload['Tanıtım Videosu Sayısı'] = panel.count.toString();
+          payload['Tanıtım Videosu Açıklaması'] = panel.description || '';
+          payload['Tanıtım Videosu Süresi'] = `${panel.duration} saniye`;
+          payload['Tanıtım Videosu Stil'] = panel.style;
+          payload['Tanıtım Videosu Çağrı Metni'] = panel.ctaText || '';
+
+          const influencer = influencers.find(inf => inf.id === panel.influencer);
+          payload['Tanıtım Videosu Influencer'] = influencer ? influencer.name : '';
+
+          const platformNames = panel.platforms.map(pid => {
+            const p = PLATFORMS.find(plat => plat.id === pid);
+            return p ? p.name : '';
+          }).filter(Boolean);
+          payload['Tanıtım Videosu Platformlar'] = platformNames.join(', ');
+
+          payload['Tanıtım Videosu Boyutu'] = VIDEO_SIZES.find(s => s.value === panel.size)?.label || panel.size;
+
+          if (panel.backgroundImage) {
+            payload['Tanıtım Videosu Arka Plan Görseli'] = panel.backgroundImage.name;
+          } else if (videoBackgroundImage) {
+            payload['Tanıtım Videosu Arka Plan Görseli'] = videoBackgroundImage.name;
+          }
+        } else if (type === 'story') {
+          // 4.2 Hikaye Videosu
+          payload['Hikaye Videosu Sayısı'] = panel.count.toString();
+          payload['Hikaye Videosu Açıklaması'] = panel.description || '';
+          payload['Hikaye Videosu Süresi'] = `${panel.duration} saniye`;
+          payload['Hikaye Videosu Stil'] = panel.style;
+          payload['Hikaye Videosu Çağrı Metni'] = panel.ctaText || '';
+
+          const influencer = influencers.find(inf => inf.id === panel.influencer);
+          payload['Hikaye Videosu Influencer'] = influencer ? influencer.name : '';
+
+          const platformNames = panel.platforms.map(pid => {
+            const p = PLATFORMS.find(plat => plat.id === pid);
+            return p ? p.name : '';
+          }).filter(Boolean);
+          payload['Hikaye Videosu Platformlar'] = platformNames.join(', ');
+
+          payload['Hikaye Videosu Boyutu'] = VIDEO_SIZES.find(s => s.value === panel.size)?.label || panel.size;
+
+          if (panel.backgroundImage) {
+            payload['Hikaye Videosu Arka Plan Görseli'] = panel.backgroundImage.name;
+          } else if (videoBackgroundImage) {
+            payload['Hikaye Videosu Arka Plan Görseli'] = videoBackgroundImage.name;
+          }
+        } else if (type === 'reference') {
+          // 4.3 Referans Video
+          if (panel.referenceVideo) {
+            payload['Referans Video Dosyası'] = panel.referenceVideo.name;
+          }
+
+          payload['Referans Video Modu'] = panel.referenceMode === 'exact' ? 'Birebir Aynı Olsun' : 'Benzer Olsun';
+          payload['Referans Video Açıklaması'] = panel.description || '';
+          payload['Referans Video Süresi'] = `${panel.duration} saniye`;
+          payload['Referans Video Stil'] = panel.style;
+          payload['Referans Video Çağrı Metni'] = panel.ctaText || '';
+
+          const influencer = influencers.find(inf => inf.id === panel.influencer);
+          payload['Referans Video Influencer'] = influencer ? influencer.name : '';
+
+          const platformNames = panel.platforms.map(pid => {
+            const p = PLATFORMS.find(plat => plat.id === pid);
+            return p ? p.name : '';
+          }).filter(Boolean);
+          payload['Referans Video Platformlar'] = platformNames.join(', ');
+
+          payload['Referans Video Boyutu'] = VIDEO_SIZES.find(s => s.value === panel.size)?.label || panel.size;
+
+          if (panel.backgroundImage) {
+            payload['Referans Video Arka Plan Görseli'] = panel.backgroundImage.name;
+          } else if (videoBackgroundImage) {
+            payload['Referans Video Arka Plan Görseli'] = videoBackgroundImage.name;
+          }
+
+          // Audio usage
+          payload['Referans Video Orijinal Ses Kullanılsın mı'] = panel.useOriginalAudio ? 'Evet' : 'Hayır';
+
+          if (panel.referenceAudio && !panel.useOriginalAudio) {
+            payload['Referans Video Yeni Ses Dosyası'] = `ref_video_${type}_audio.webm`;
+          }
+        }
+      });
+
+      // 5) ANAHTAR KELİMELER VE HEDEF KİTLE
+      payload['Anahtar Kelimeler'] = keywords || '';
+      payload['Hedef Kitle'] = targetAudience || '';
+
+      // Append the flat payload as JSON string
       formData.append('payload', JSON.stringify(payload));
 
-      // Append reference images
-      referenceImages.forEach((img, index) => {
+      // Append all files
+      // Reference images
+      referenceImages.forEach((img) => {
         if (img.file) {
           formData.append('files', img.file, img.file.name);
         }
       });
 
-      // Append visual creation files
+      // Visual creation files
       selectedVisualTypes.forEach(type => {
         const panel = visualPanels[type];
         if (panel.descriptionAudioBlob) {
@@ -699,12 +828,12 @@ export default function ProductUploadPage() {
         }
       });
 
-      // Append global visual background
+      // Global visual background
       if (visualBackgroundImage) {
         formData.append('files', visualBackgroundImage, visualBackgroundImage.name);
       }
 
-      // Append video creation files
+      // Video creation files
       selectedVideoTypes.forEach(type => {
         const panel = videoPanels[type];
         if (panel.descriptionAudioBlob) {
@@ -721,7 +850,7 @@ export default function ProductUploadPage() {
         }
       });
 
-      // Append global video background
+      // Global video background
       if (videoBackgroundImage) {
         formData.append('files', videoBackgroundImage, videoBackgroundImage.name);
       }
