@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, Sparkles, Video, Image as ImageIcon, Check, X, Loader, Instagram, Facebook, Twitter, Zap, Globe, Camera, Image, Play, Film, Scroll, Mic, MicOff, Volume2, RefreshCw, FileText, Tag, Users } from 'lucide-react';
+import { Upload, Sparkles, Video, Image as ImageIcon, Check, X, Loader, Instagram, Facebook, Twitter, Zap, Globe, Camera, Play, Film, Mic, MicOff, Volume2, RefreshCw, FileText, Tag, Users, DollarSign, Package, Link as LinkIcon, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Influencer } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,13 +10,52 @@ interface Platform {
   icon: React.ReactNode;
 }
 
-interface GeneratedContent {
+interface ReferenceImage {
   id: string;
-  type: 'image' | 'video';
-  videoType?: 'promotional' | 'story';
+  file: File | null;
   url: string;
+  isPrimary: boolean;
+}
+
+interface VisualCreationPanel {
+  type: 'studio' | 'story' | 'reference';
+  count: number;
+  style: string;
+  description: string;
+  descriptionAudioBlob: Blob | null;
+  descriptionAudioUrl: string | null;
+  influencer: string;
   platforms: string[];
-  influencerId?: string;
+  size: string;
+  referenceMode: 'exact' | 'similar' | null;
+  backgroundImage: File | null;
+  backgroundImageUrl: string | null;
+  backgroundDescription: string;
+  completed: boolean;
+}
+
+interface VideoCreationPanel {
+  type: 'promo' | 'story' | 'reference';
+  count: number;
+  platforms: string[];
+  description: string;
+  descriptionAudioBlob: Blob | null;
+  descriptionAudioUrl: string | null;
+  duration: number;
+  style: string;
+  ctaText: string;
+  influencer: string;
+  size: string;
+  referenceMode: 'exact' | 'similar' | null;
+  referenceVideo: File | null;
+  referenceVideoUrl: string | null;
+  referenceAudio: Blob | null;
+  referenceAudioUrl: string | null;
+  useOriginalAudio: boolean;
+  backgroundImage: File | null;
+  backgroundImageUrl: string | null;
+  backgroundDescription: string;
+  completed: boolean;
 }
 
 const PLATFORMS: Platform[] = [
@@ -25,20 +64,20 @@ const PLATFORMS: Platform[] = [
   { id: 'twitter', name: 'Twitter', icon: <Twitter className="w-4 h-4" /> },
   { id: 'tiktok', name: 'TikTok', icon: <Zap className="w-4 h-4" /> },
   { id: 'pinterest', name: 'Pinterest', icon: <ImageIcon className="w-4 h-4" /> },
-  { id: 'website-product', name: 'Web Ürün', icon: <Globe className="w-4 h-4" /> },
 ];
 
-const SAMPLE_GENERATED_IMAGES = [
-  'https://images.pexels.com/photos/90946/pexels-photo-90946.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'https://images.pexels.com/photos/1649771/pexels-photo-1649771.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'https://images.pexels.com/photos/3945683/pexels-photo-3945683.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'https://images.pexels.com/photos/1667088/pexels-photo-1667088.jpeg?auto=compress&cs=tinysrgb&w=800',
+const IMAGE_SIZES = [
+  { value: 'square', label: 'Kare (1:1)' },
+  { value: '4:5', label: 'Dikey (4:5)' },
+  { value: '9:16', label: 'Story (9:16)' },
+  { value: '16:9', label: 'Yatay (16:9)' },
+  { value: 'web-banner', label: 'Web Banner' },
 ];
 
-const SAMPLE_GENERATED_VIDEOS = [
-  'https://images.pexels.com/photos/1229861/pexels-photo-1229861.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'https://images.pexels.com/photos/4968391/pexels-photo-4968391.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'https://images.pexels.com/photos/3945683/pexels-photo-3945683.jpeg?auto=compress&cs=tinysrgb&w=800',
+const VIDEO_SIZES = [
+  { value: '9:16', label: 'Dikey (9:16)' },
+  { value: '1:1', label: 'Kare (1:1)' },
+  { value: '16:9', label: 'Yatay (16:9)' },
 ];
 
 export default function ProductUploadPage() {
@@ -46,77 +85,170 @@ export default function ProductUploadPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
-  const [productCode, setProductCode] = useState('');
-  const [productName, setProductName] = useState('');
-  const [productDescription, setProductDescription] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-
-  const [imageCount, setImageCount] = useState(4);
-  const [promotionalVideoCount, setPromotionalVideoCount] = useState(1);
-  const [storyVideoCount, setStoryVideoCount] = useState(1);
-  const [imageStyle, setImageStyle] = useState('modern');
-  const [imageVisualDescription, setImageVisualDescription] = useState('');
-  const [selectedImageInfluencer, setSelectedImageInfluencer] = useState('');
-  const [selectedVideoInfluencer, setSelectedVideoInfluencer] = useState('');
-
-  const [isRecordingImage, setIsRecordingImage] = useState(false);
-  const [isRecordingPromotionalVideo, setIsRecordingPromotionalVideo] = useState(false);
-  const [isRecordingStoryVideo, setIsRecordingStoryVideo] = useState(false);
-  const [imageAudioUrl, setImageAudioUrl] = useState<string | null>(null);
-  const [promotionalVideoAudioUrl, setPromotionalVideoAudioUrl] = useState<string | null>(null);
-  const [storyVideoAudioUrl, setStoryVideoAudioUrl] = useState<string | null>(null);
-  const [isProcessingImageSpeech, setIsProcessingImageSpeech] = useState(false);
-  const [isProcessingPromotionalVideoSpeech, setIsProcessingPromotionalVideoSpeech] = useState(false);
-  const [isProcessingStoryVideoSpeech, setIsProcessingStoryVideoSpeech] = useState(false);
+  const additionalImagesInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
 
-  const [selectedVideoTypes, setSelectedVideoTypes] = useState<('promotional' | 'story')[]>(['promotional']);
-  const [promotionalVideoStyle, setPromotionalVideoStyle] = useState('showcase');
-  const [promotionalVideoDuration, setPromotionalVideoDuration] = useState(30);
-  const [promotionalVideoDescription, setPromotionalVideoDescription] = useState('');
-  const [promotionalVideoInfluencer, setPromotionalVideoInfluencer] = useState('');
-  const [callToAction, setCallToAction] = useState('');
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
 
-  const [storyVideoStyle, setStoryVideoStyle] = useState('customer-journey');
-  const [storyVideoDuration, setStoryVideoDuration] = useState(30);
-  const [storyVideoDescription, setStoryVideoDescription] = useState('');
-  const [storyVideoInfluencer, setStoryVideoInfluencer] = useState('');
-  const [narrativeTone, setNarrativeTone] = useState('inspirational');
+  // Product Information
+  const [productCode, setProductCode] = useState('');
+  const [productName, setProductName] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [productStock, setProductStock] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [productUrl, setProductUrl] = useState('');
+  const [referenceProductUrl, setReferenceProductUrl] = useState('');
 
-  const [selectedImagePlatforms, setSelectedImagePlatforms] = useState<string[]>([]);
-  const [selectedPromotionalVideoPlatforms, setSelectedPromotionalVideoPlatforms] = useState<string[]>([]);
-  const [selectedStoryVideoPlatforms, setSelectedStoryVideoPlatforms] = useState<string[]>([]);
+  // Reference Images
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
-  const [imagesCompleted, setImagesCompleted] = useState(false);
-  const [videosCompleted, setVideosCompleted] = useState(false);
-  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
-  const [productCreated, setProductCreated] = useState(false);
+  // Visual Creation
+  const [selectedVisualTypes, setSelectedVisualTypes] = useState<('studio' | 'story' | 'reference')[]>([]);
+  const [visualPanels, setVisualPanels] = useState<Record<string, VisualCreationPanel>>({
+    studio: {
+      type: 'studio',
+      count: 4,
+      style: 'Modern',
+      description: '',
+      descriptionAudioBlob: null,
+      descriptionAudioUrl: null,
+      influencer: '',
+      platforms: [],
+      size: 'square',
+      referenceMode: null,
+      backgroundImage: null,
+      backgroundImageUrl: null,
+      backgroundDescription: '',
+      completed: false,
+    },
+    story: {
+      type: 'story',
+      count: 4,
+      style: 'Modern',
+      description: '',
+      descriptionAudioBlob: null,
+      descriptionAudioUrl: null,
+      influencer: '',
+      platforms: [],
+      size: '9:16',
+      referenceMode: null,
+      backgroundImage: null,
+      backgroundImageUrl: null,
+      backgroundDescription: '',
+      completed: false,
+    },
+    reference: {
+      type: 'reference',
+      count: 4,
+      style: 'Modern',
+      description: '',
+      descriptionAudioBlob: null,
+      descriptionAudioUrl: null,
+      influencer: '',
+      platforms: [],
+      size: 'square',
+      referenceMode: null,
+      backgroundImage: null,
+      backgroundImageUrl: null,
+      backgroundDescription: '',
+      completed: false,
+    },
+  });
+  const [isRecordingVisual, setIsRecordingVisual] = useState<string | null>(null);
+  const [visualBackgroundImage, setVisualBackgroundImage] = useState<File | null>(null);
+  const [visualBackgroundImageUrl, setVisualBackgroundImageUrl] = useState<string | null>(null);
+  const [visualBackgroundDescription, setVisualBackgroundDescription] = useState('');
 
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [platformMetadata, setPlatformMetadata] = useState<{[key: string]: {
-    title: string;
-    description: string;
-    metaTitle: string;
-    metaKeywords: string;
-    targetAudience: string;
-  }}>({});
+  // Video Creation
+  const [selectedVideoTypes, setSelectedVideoTypes] = useState<('promo' | 'story' | 'reference')[]>([]);
+  const [videoPanels, setVideoPanels] = useState<Record<string, VideoCreationPanel>>({
+    promo: {
+      type: 'promo',
+      count: 1,
+      platforms: [],
+      description: '',
+      descriptionAudioBlob: null,
+      descriptionAudioUrl: null,
+      duration: 30,
+      style: 'Ürün Vitrin',
+      ctaText: '',
+      influencer: '',
+      size: '9:16',
+      referenceMode: null,
+      referenceVideo: null,
+      referenceVideoUrl: null,
+      referenceAudio: null,
+      referenceAudioUrl: null,
+      useOriginalAudio: false,
+      backgroundImage: null,
+      backgroundImageUrl: null,
+      backgroundDescription: '',
+      completed: false,
+    },
+    story: {
+      type: 'story',
+      count: 1,
+      platforms: [],
+      description: '',
+      descriptionAudioBlob: null,
+      descriptionAudioUrl: null,
+      duration: 30,
+      style: 'Müşteri Yolculuğu',
+      ctaText: '',
+      influencer: '',
+      size: '9:16',
+      referenceMode: null,
+      referenceVideo: null,
+      referenceVideoUrl: null,
+      referenceAudio: null,
+      referenceAudioUrl: null,
+      useOriginalAudio: false,
+      backgroundImage: null,
+      backgroundImageUrl: null,
+      backgroundDescription: '',
+      completed: false,
+    },
+    reference: {
+      type: 'reference',
+      count: 1,
+      platforms: [],
+      description: '',
+      descriptionAudioBlob: null,
+      descriptionAudioUrl: null,
+      duration: 30,
+      style: 'Trend',
+      ctaText: '',
+      influencer: '',
+      size: '9:16',
+      referenceMode: null,
+      referenceVideo: null,
+      referenceVideoUrl: null,
+      referenceAudio: null,
+      referenceAudioUrl: null,
+      useOriginalAudio: false,
+      backgroundImage: null,
+      backgroundImageUrl: null,
+      backgroundDescription: '',
+      completed: false,
+    },
+  });
+  const [isRecordingVideo, setIsRecordingVideo] = useState<string | null>(null);
+  const [videoBackgroundImage, setVideoBackgroundImage] = useState<File | null>(null);
+  const [videoBackgroundImageUrl, setVideoBackgroundImageUrl] = useState<string | null>(null);
+  const [videoBackgroundDescription, setVideoBackgroundDescription] = useState('');
 
-  const [generatedImages, setGeneratedImages] = useState<GeneratedContent[]>([]);
-  const [generatedVideos, setGeneratedVideos] = useState<GeneratedContent[]>([]);
-
-  const [showResults, setShowResults] = useState(false);
-
+  // Keywords and Target Audience
   const [keywords, setKeywords] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
+
+  // Submission
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     loadInfluencers();
@@ -142,7 +274,7 @@ export default function ProductUploadPage() {
     if (data) setInfluencers(data);
   };
 
-
+  // Camera Functions
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -156,7 +288,7 @@ export default function ProductUploadPage() {
       }
     } catch (error) {
       console.error('Camera error:', error);
-      alert('Kamera erişimi sağlanamadı. Lütfen izinleri kontrol edin.');
+      alert('Kamera açılamadı — tarayıcı izinlerini kontrol edin.');
     }
   };
 
@@ -185,9 +317,19 @@ export default function ProductUploadPage() {
     }
   };
 
-  const confirmCapture = () => {
+  const confirmCapture = async () => {
     if (capturedImage) {
-      setPreviewUrl(capturedImage);
+      const blob = await fetch(capturedImage).then(r => r.blob());
+      const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      const newImage: ReferenceImage = {
+        id: `img-${Date.now()}`,
+        file,
+        url: capturedImage,
+        isPrimary: referenceImages.length === 0,
+      };
+
+      setReferenceImages(prev => [...prev, newImage]);
       stopCamera();
       setCapturedImage(null);
     }
@@ -197,221 +339,143 @@ export default function ProductUploadPage() {
     setCapturedImage(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
-
   const handleGalleryClick = () => {
     fileInputRef.current?.click();
   };
 
-  const toggleImagePlatform = (platformId: string) => {
-    setSelectedImagePlatforms(prev =>
-      prev.includes(platformId)
-        ? prev.filter(id => id !== platformId)
-        : [...prev, platformId]
-    );
-  };
-
-  const togglePromotionalVideoPlatform = (platformId: string) => {
-    setSelectedPromotionalVideoPlatforms(prev =>
-      prev.includes(platformId)
-        ? prev.filter(id => id !== platformId)
-        : [...prev, platformId]
-    );
-  };
-
-  const toggleStoryVideoPlatform = (platformId: string) => {
-    setSelectedStoryVideoPlatforms(prev =>
-      prev.includes(platformId)
-        ? prev.filter(id => id !== platformId)
-        : [...prev, platformId]
-    );
-  };
-
-  const handleGenerateImages = async () => {
-    setImagesCompleted(true);
-  };
-
-  const handleGenerateVideos = async () => {
-    setVideosCompleted(true);
-  };
-
-  const handleApproveContent = (contentId: string) => {
-    console.log('Approved:', contentId);
-  };
-
-  const handleRejectContent = (contentId: string) => {
-    setGeneratedImages(prev => prev.filter(item => item.id !== contentId));
-    setGeneratedVideos(prev => prev.filter(item => item.id !== contentId));
-  };
-
-  const handlePublishAll = () => {
-    alert(`${generatedImages.length + generatedVideos.length} içerik yayınlanacak!`);
-  };
-
-  const getInfluencerName = (influencerId: string) => {
-    const influencer = influencers.find(inf => inf.id === influencerId);
-    return influencer ? influencer.name : 'Bilinmeyen';
-  };
-
-  const toggleVideoType = (type: 'promotional' | 'story') => {
-    setSelectedVideoTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
-  };
-
-  const togglePlatformSelection = (platformId: string) => {
-    setSelectedPlatforms(prev =>
-      prev.includes(platformId)
-        ? prev.filter(id => id !== platformId)
-        : [...prev, platformId]
-    );
-  };
-
-  const updatePlatformMetadata = (platformId: string, field: string, value: string) => {
-    setPlatformMetadata(prev => ({
-      ...prev,
-      [platformId]: {
-        ...prev[platformId],
-        title: prev[platformId]?.title || productName,
-        description: prev[platformId]?.description || productDescription,
-        metaTitle: prev[platformId]?.metaTitle || '',
-        metaKeywords: prev[platformId]?.metaKeywords || keywords,
-        targetAudience: prev[platformId]?.targetAudience || targetAudience,
-        [field]: value
-      }
-    }));
-  };
-
-  const handleCreateProduct = async () => {
-    setIsCreatingProduct(true);
-
-    const images: GeneratedContent[] = SAMPLE_GENERATED_IMAGES.slice(0, imageCount).map((url, index) => ({
-      id: `img-${Date.now()}-${index}`,
-      type: 'image' as const,
-      url,
-      platforms: [...selectedImagePlatforms],
-      influencerId: selectedImageInfluencer,
-    }));
-
-    const videos: GeneratedContent[] = [];
-    let videoIndex = 0;
-
-    selectedVideoTypes.forEach((type) => {
-      const count = type === 'promotional' ? promotionalVideoCount : storyVideoCount;
-      const platforms = type === 'promotional' ? selectedPromotionalVideoPlatforms : selectedStoryVideoPlatforms;
-      const influencer = type === 'promotional' ? promotionalVideoInfluencer : storyVideoInfluencer;
-
-      const typeVideos = SAMPLE_GENERATED_VIDEOS.slice(videoIndex, videoIndex + count).map((url, index) => ({
-        id: `vid-${type}-${Date.now()}-${index}`,
-        type: 'video' as const,
-        videoType: type,
-        url,
-        platforms: [...platforms],
-        influencerId: influencer,
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newImages: ReferenceImage[] = Array.from(files).map((file, index) => ({
+        id: `img-${Date.now()}-${index}`,
+        file,
+        url: URL.createObjectURL(file),
+        isPrimary: referenceImages.length === 0 && index === 0,
       }));
-      videos.push(...typeVideos);
-      videoIndex += count;
-    });
+      setReferenceImages(prev => [...prev, ...newImages]);
+    }
+  };
 
-    setGeneratedImages(images);
-    setGeneratedVideos(videos);
+  const handleAdditionalImagesClick = () => {
+    additionalImagesInputRef.current?.click();
+  };
 
-    const webhookData = {
-      product: {
-        code: productCode,
-        name: productName,
-        description: productDescription,
-        keywords: keywords,
-        targetAudience: targetAudience,
-        previewUrl: previewUrl,
-      },
-      imageGeneration: {
-        count: imageCount,
-        style: imageStyle,
-        visualDescription: imageVisualDescription,
-        influencerId: selectedImageInfluencer,
-        platforms: selectedImagePlatforms,
-        audioUrl: imageAudioUrl,
-      },
-      videoGeneration: {
-        selectedTypes: selectedVideoTypes,
-        promotional: selectedVideoTypes.includes('promotional') ? {
-          count: promotionalVideoCount,
-          style: promotionalVideoStyle,
-          duration: promotionalVideoDuration,
-          description: promotionalVideoDescription,
-          influencerId: promotionalVideoInfluencer,
-          callToAction: callToAction,
-          platforms: selectedPromotionalVideoPlatforms,
-          audioUrl: promotionalVideoAudioUrl,
-        } : null,
-        story: selectedVideoTypes.includes('story') ? {
-          count: storyVideoCount,
-          style: storyVideoStyle,
-          duration: storyVideoDuration,
-          description: storyVideoDescription,
-          influencerId: storyVideoInfluencer,
-          narrativeTone: narrativeTone,
-          platforms: selectedStoryVideoPlatforms,
-          audioUrl: storyVideoAudioUrl,
-        } : null,
-      },
-      generatedContent: {
-        images: images.map(img => ({
-          id: img.id,
-          url: img.url,
-          platforms: img.platforms,
-          influencerId: img.influencerId,
-        })),
-        videos: videos.map(vid => ({
-          id: vid.id,
-          videoType: vid.videoType,
-          url: vid.url,
-          platforms: vid.platforms,
-          influencerId: vid.influencerId,
-        })),
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    try {
-      const response = await fetch('https://n8n.furkaneskicioglu.com/webhook-test/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookData),
-      });
-
-      if (!response.ok) {
-        console.error('Webhook failed:', response.status);
+  const removeReferenceImage = (id: string) => {
+    setReferenceImages(prev => {
+      const filtered = prev.filter(img => img.id !== id);
+      if (filtered.length > 0 && !filtered.some(img => img.isPrimary)) {
+        filtered[0].isPrimary = true;
       }
-    } catch (error) {
-      console.error('Webhook error:', error);
+      return filtered;
+    });
+  };
+
+  const setPrimaryImage = (id: string) => {
+    setReferenceImages(prev => prev.map(img => ({
+      ...img,
+      isPrimary: img.id === id,
+    })));
+  };
+
+  // Visual Creation Functions
+  const toggleVisualType = (type: 'studio' | 'story' | 'reference') => {
+    setSelectedVisualTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const updateVisualPanel = (type: string, field: string, value: any) => {
+    setVisualPanels(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [field]: value,
+      },
+    }));
+  };
+
+  const toggleVisualPlatform = (type: string, platformId: string) => {
+    setVisualPanels(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        platforms: prev[type].platforms.includes(platformId)
+          ? prev[type].platforms.filter(id => id !== platformId)
+          : [...prev[type].platforms, platformId],
+      },
+    }));
+  };
+
+  const completeVisualPanel = (type: string) => {
+    const panel = visualPanels[type];
+
+    // Validate reference mode for reference type
+    if (type === 'reference' && !panel.referenceMode) {
+      alert('Lütfen referans görselin birebir mi yoksa benzer mi olacağını seçin.');
+      return;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsCreatingProduct(false);
-    setProductCreated(true);
-    setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
+    updateVisualPanel(type, 'completed', true);
   };
 
-  const handlePublishToAllPlatforms = async () => {
-    alert(`${selectedPlatforms.length} platforma içerik yayınlanacak!`);
+  // Video Creation Functions
+  const toggleVideoType = (type: 'promo' | 'story' | 'reference') => {
+    setSelectedVideoTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
   };
 
-  const startImageVoiceRecording = async (type: 'image' | 'promotional-video' | 'story-video') => {
+  const updateVideoPanel = (type: string, field: string, value: any) => {
+    setVideoPanels(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [field]: value,
+      },
+    }));
+  };
+
+  const toggleVideoPlatform = (type: string, platformId: string) => {
+    setVideoPanels(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        platforms: prev[type].platforms.includes(platformId)
+          ? prev[type].platforms.filter(id => id !== platformId)
+          : [...prev[type].platforms, platformId],
+      },
+    }));
+  };
+
+  const handleReferenceVideoUpload = async (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      updateVideoPanel(type, 'referenceVideo', file);
+      updateVideoPanel(type, 'referenceVideoUrl', url);
+
+      // Extract audio from video (simplified - in production, use FFmpeg or similar)
+      // For now, just create a placeholder
+      const audioBlob = new Blob([], { type: 'audio/webm' });
+      updateVideoPanel(type, 'referenceAudio', audioBlob);
+      updateVideoPanel(type, 'referenceAudioUrl', URL.createObjectURL(audioBlob));
+    }
+  };
+
+  const completeVideoPanel = (type: string) => {
+    const panel = videoPanels[type];
+
+    // Validate reference mode for reference type
+    if (type === 'reference' && !panel.referenceMode) {
+      alert('Lütfen referans videonun birebir mi yoksa benzer mi olacağını seçin.');
+      return;
+    }
+
+    updateVideoPanel(type, 'completed', true);
+  };
+
+  // Audio Recording Functions
+  const startVoiceRecording = async (context: 'visual' | 'video', type: string) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -429,12 +493,12 @@ export default function ProductUploadPage() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
 
-        if (type === 'image') {
-          setImageAudioUrl(audioUrl);
-        } else if (type === 'promotional-video') {
-          setPromotionalVideoAudioUrl(audioUrl);
+        if (context === 'visual') {
+          updateVisualPanel(type, 'descriptionAudioBlob', audioBlob);
+          updateVisualPanel(type, 'descriptionAudioUrl', audioUrl);
         } else {
-          setStoryVideoAudioUrl(audioUrl);
+          updateVideoPanel(type, 'descriptionAudioBlob', audioBlob);
+          updateVideoPanel(type, 'descriptionAudioUrl', audioUrl);
         }
 
         stream.getTracks().forEach(track => track.stop());
@@ -443,14 +507,6 @@ export default function ProductUploadPage() {
       mediaRecorder.start();
 
       if (recognitionRef.current) {
-        if (type === 'image') {
-          setIsProcessingImageSpeech(true);
-        } else if (type === 'promotional-video') {
-          setIsProcessingPromotionalVideoSpeech(true);
-        } else {
-          setIsProcessingStoryVideoSpeech(true);
-        }
-
         recognitionRef.current.onresult = (event: any) => {
           let finalTranscript = '';
 
@@ -462,30 +518,27 @@ export default function ProductUploadPage() {
           }
 
           if (finalTranscript) {
-            if (type === 'image') {
-              setImageVisualDescription(prev => prev + finalTranscript);
-            } else if (type === 'promotional-video') {
-              setPromotionalVideoDescription(prev => prev + finalTranscript);
+            if (context === 'visual') {
+              const current = visualPanels[type].description;
+              updateVisualPanel(type, 'description', current + finalTranscript);
             } else {
-              setStoryVideoDescription(prev => prev + finalTranscript);
+              const current = videoPanels[type].description;
+              updateVideoPanel(type, 'description', current + finalTranscript);
             }
           }
         };
 
         recognitionRef.current.onerror = (event: any) => {
           console.error('Speech recognition error:', event.error);
-          alert('Ses tanıma hatası: ' + event.error);
         };
 
         recognitionRef.current.start();
       }
 
-      if (type === 'image') {
-        setIsRecordingImage(true);
-      } else if (type === 'promotional-video') {
-        setIsRecordingPromotionalVideo(true);
+      if (context === 'visual') {
+        setIsRecordingVisual(type);
       } else {
-        setIsRecordingStoryVideo(true);
+        setIsRecordingVideo(type);
       }
     } catch (error) {
       console.error('Microphone access error:', error);
@@ -493,7 +546,7 @@ export default function ProductUploadPage() {
     }
   };
 
-  const stopVoiceRecording = (type: 'image' | 'promotional-video' | 'story-video') => {
+  const stopVoiceRecording = (context: 'visual' | 'video') => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -502,15 +555,10 @@ export default function ProductUploadPage() {
       recognitionRef.current.stop();
     }
 
-    if (type === 'image') {
-      setIsRecordingImage(false);
-      setIsProcessingImageSpeech(false);
-    } else if (type === 'promotional-video') {
-      setIsRecordingPromotionalVideo(false);
-      setIsProcessingPromotionalVideoSpeech(false);
+    if (context === 'visual') {
+      setIsRecordingVisual(null);
     } else {
-      setIsRecordingStoryVideo(false);
-      setIsProcessingStoryVideoSpeech(false);
+      setIsRecordingVideo(null);
     }
   };
 
@@ -521,43 +569,237 @@ export default function ProductUploadPage() {
     }
   };
 
-  const retryVoiceRecording = (type: 'image' | 'promotional-video' | 'story-video') => {
-    if (type === 'image') {
-      setImageVisualDescription('');
-      setImageAudioUrl(null);
-    } else if (type === 'promotional-video') {
-      setPromotionalVideoDescription('');
-      setPromotionalVideoAudioUrl(null);
+  const retryVoiceRecording = (context: 'visual' | 'video', type: string) => {
+    if (context === 'visual') {
+      updateVisualPanel(type, 'description', '');
+      updateVisualPanel(type, 'descriptionAudioBlob', null);
+      updateVisualPanel(type, 'descriptionAudioUrl', null);
     } else {
-      setStoryVideoDescription('');
-      setStoryVideoAudioUrl(null);
+      updateVideoPanel(type, 'description', '');
+      updateVideoPanel(type, 'descriptionAudioBlob', null);
+      updateVideoPanel(type, 'descriptionAudioUrl', null);
     }
-    startImageVoiceRecording(type);
+    startVoiceRecording(context, type);
   };
 
-  const isWebProduct = selectedImagePlatforms.includes('website-product') || selectedPromotionalVideoPlatforms.includes('website-product') || selectedStoryVideoPlatforms.includes('website-product');
+  // Validation and Submission
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+
+    if (!productCode.trim()) errors.push('Ürün Kodu zorunludur');
+    if (!productName.trim()) errors.push('Ürün Adı zorunludur');
+    if (!productStock.trim() || isNaN(Number(productStock))) errors.push('Stok Adedi geçerli bir sayı olmalıdır');
+    if (!productPrice.trim() || isNaN(Number(productPrice))) errors.push('Ürün Fiyatı geçerli bir sayı olmalıdır');
+
+    // Check reference modes
+    if (selectedVisualTypes.includes('reference') && !visualPanels.reference.referenceMode) {
+      errors.push('Referans Görsel için referans modunu seçmelisiniz (Birebir veya Benzer)');
+    }
+
+    if (selectedVideoTypes.includes('reference') && !videoPanels.reference.referenceMode) {
+      errors.push('Referans Video için referans modunu seçmelisiniz (Birebir veya Benzer)');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleCreateProduct = async () => {
+    if (!validateForm()) {
+      alert('Lütfen tüm zorunlu alanları doldurun:\n' + validationErrors.join('\n'));
+      return;
+    }
+
+    setIsCreatingProduct(true);
+
+    try {
+      const formData = new FormData();
+
+      // Build JSON payload
+      const payload = {
+        product: {
+          code: productCode,
+          name: productName,
+          description: productDescription || null,
+          stock: Number(productStock),
+          price: Number(productPrice),
+          url: productUrl || null,
+          reference_url: referenceProductUrl || null,
+        },
+        reference_images: referenceImages.map((img, index) => ({
+          id: img.id,
+          filename: img.file ? img.file.name : `reference-${index}.jpg`,
+          is_primary: img.isPrimary,
+        })),
+        visual_creation: selectedVisualTypes.map(type => {
+          const panel = visualPanels[type];
+          return {
+            type,
+            count: panel.count,
+            style: panel.style,
+            description_text: panel.description || null,
+            description_audio_filename: panel.descriptionAudioBlob ? `visual_${type}_desc.webm` : null,
+            influencer: panel.influencer || null,
+            platforms: panel.platforms,
+            size: panel.size,
+            background_image_filename: panel.backgroundImage ? panel.backgroundImage.name : (visualBackgroundImage ? visualBackgroundImage.name : null),
+            background_description: panel.backgroundDescription || visualBackgroundDescription || null,
+            referenceMode: panel.referenceMode,
+          };
+        }),
+        video_creation: selectedVideoTypes.map(type => {
+          const panel = videoPanels[type];
+          return {
+            type,
+            count: panel.count,
+            platforms: panel.platforms,
+            description_text: panel.description || null,
+            description_audio_filename: panel.descriptionAudioBlob ? `video_${type}_desc.webm` : null,
+            duration_seconds: panel.duration,
+            style: panel.style,
+            cta_text: panel.ctaText || null,
+            influencer: panel.influencer || null,
+            size: panel.size,
+            background_image_filename: panel.backgroundImage ? panel.backgroundImage.name : (videoBackgroundImage ? videoBackgroundImage.name : null),
+            background_description: panel.backgroundDescription || videoBackgroundDescription || null,
+            referenceMode: panel.referenceMode,
+            reference_video: panel.referenceVideo ? {
+              filename: panel.referenceVideo.name,
+              audio_filename: panel.referenceAudio ? `ref_video_${type}_audio.webm` : null,
+              use_original_audio: panel.useOriginalAudio,
+            } : null,
+          };
+        }),
+        keywords: keywords || null,
+        target_audience: targetAudience || null,
+        meta: {
+          created_by_user: user?.id || 'unknown',
+          created_at: new Date().toISOString(),
+          source: 'bolt_ui_v2',
+        },
+      };
+
+      formData.append('payload', JSON.stringify(payload));
+
+      // Append reference images
+      referenceImages.forEach((img, index) => {
+        if (img.file) {
+          formData.append('files', img.file, img.file.name);
+        }
+      });
+
+      // Append visual creation files
+      selectedVisualTypes.forEach(type => {
+        const panel = visualPanels[type];
+        if (panel.descriptionAudioBlob) {
+          formData.append('files', panel.descriptionAudioBlob, `visual_${type}_desc.webm`);
+        }
+        if (panel.backgroundImage) {
+          formData.append('files', panel.backgroundImage, panel.backgroundImage.name);
+        }
+      });
+
+      // Append global visual background
+      if (visualBackgroundImage) {
+        formData.append('files', visualBackgroundImage, visualBackgroundImage.name);
+      }
+
+      // Append video creation files
+      selectedVideoTypes.forEach(type => {
+        const panel = videoPanels[type];
+        if (panel.descriptionAudioBlob) {
+          formData.append('files', panel.descriptionAudioBlob, `video_${type}_desc.webm`);
+        }
+        if (panel.backgroundImage) {
+          formData.append('files', panel.backgroundImage, panel.backgroundImage.name);
+        }
+        if (panel.referenceVideo) {
+          formData.append('files', panel.referenceVideo, panel.referenceVideo.name);
+        }
+        if (panel.referenceAudio) {
+          formData.append('files', panel.referenceAudio, `ref_video_${type}_audio.webm`);
+        }
+      });
+
+      // Append global video background
+      if (videoBackgroundImage) {
+        formData.append('files', videoBackgroundImage, videoBackgroundImage.name);
+      }
+
+      const response = await fetch('https://n8n.furkaneskicioglu.com/webhook-test/test', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Webhook failed: ' + response.status);
+      }
+
+      alert('Ürün başarıyla oluşturuldu!');
+    } catch (error) {
+      console.error('Product creation error:', error);
+      alert('Ürün oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsCreatingProduct(false);
+    }
+  };
 
   return (
-    <div className="max-w-full px-8">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    <div className="max-w-full px-8 py-6">
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* LEFT COLUMN */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          {/* Reference Image Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Upload className="w-5 h-5 text-blue-600" />
               Ürün Referans Görseli
             </h3>
 
             <div className="space-y-3">
-              <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
-                {previewUrl ? (
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
+              {referenceImages.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {referenceImages.map((img) => (
+                    <div key={img.id} className="relative group">
+                      <img
+                        src={img.url}
+                        alt="Reference"
+                        className={`w-full h-32 object-cover rounded-lg border-2 ${img.isPrimary ? 'border-blue-500' : 'border-gray-200'}`}
+                      />
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        {!img.isPrimary && (
+                          <button
+                            onClick={() => setPrimaryImage(img.id)}
+                            className="bg-white rounded p-1 shadow text-xs"
+                            title="Ana görsel yap"
+                          >
+                            ⭐
+                          </button>
+                        )}
+                        <button
+                          onClick={() => removeReferenceImage(img.id)}
+                          className="bg-red-500 text-white rounded p-1 shadow"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {img.isPrimary && (
+                        <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">
+                          Ana
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
                   <div className="text-center p-4">
                     <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                     <p className="text-xs text-gray-500">Ürün görseli</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -571,25 +813,302 @@ export default function ProductUploadPage() {
                   onClick={handleGalleryClick}
                   className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors border border-gray-200"
                 >
-                  <Image className="w-4 h-4" />
+                  <ImageIcon className="w-4 h-4" />
                   Galeri
                 </button>
               </div>
+
+              <button
+                onClick={handleAdditionalImagesClick}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors border border-gray-200 text-sm"
+              >
+                <span>+ Görsel</span>
+              </button>
 
               <input
                 ref={fileInputRef}
                 type="file"
                 onChange={handleFileChange}
                 accept="image/*"
+                multiple
+                className="hidden"
+              />
+              <input
+                ref={additionalImagesInputRef}
+                type="file"
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple
                 className="hidden"
               />
             </div>
           </div>
 
+          {/* Visual Creation Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-purple-600" />
+                Görsel Oluşturma
+              </h3>
+              <div className="text-right text-xs">
+                <label className="block text-gray-600 mb-1">Görsel Arka Planı</label>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setVisualBackgroundImage(file);
+                      setVisualBackgroundImageUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                  accept="image/*"
+                  className="text-xs"
+                />
+                {visualBackgroundImageUrl && (
+                  <img src={visualBackgroundImageUrl} className="w-16 h-16 object-cover rounded mt-1" alt="Background" />
+                )}
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-4">Görsel Tipleri (Birden fazla seçebilirsiniz)</p>
+
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <button
+                onClick={() => toggleVisualType('studio')}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg border-2 font-medium transition-all text-xs ${
+                  selectedVisualTypes.includes('studio')
+                    ? 'bg-pink-50 border-pink-500 text-pink-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <ImageIcon className="w-5 h-5" />
+                <span>Stüdyo Çekimi</span>
+                <span className="text-[10px]">(web için)</span>
+              </button>
+              <button
+                onClick={() => toggleVisualType('story')}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg border-2 font-medium transition-all text-xs ${
+                  selectedVisualTypes.includes('story')
+                    ? 'bg-purple-50 border-purple-500 text-purple-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Film className="w-5 h-5" />
+                <span>Hikaye Post</span>
+                <span className="text-[10px]">Paylaşımı</span>
+              </button>
+              <button
+                onClick={() => toggleVisualType('reference')}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg border-2 font-medium transition-all text-xs ${
+                  selectedVisualTypes.includes('reference')
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <TrendingUp className="w-5 h-5" />
+                <span>Referans</span>
+                <span className="text-[10px]">Görsel</span>
+              </button>
+            </div>
+
+            {selectedVisualTypes.map((type) => {
+              const panel = visualPanels[type];
+              const isRecording = isRecordingVisual === type;
+
+              return (
+                <div key={type} className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-3 space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-900 capitalize flex items-center justify-between">
+                    <span>{type === 'studio' ? 'Stüdyo Çekimi' : type === 'story' ? 'Hikaye Post' : 'Referans Görsel'}</span>
+                    {panel.completed && <Check className="w-5 h-5 text-green-600" />}
+                  </h4>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Görsel Sayısı</label>
+                      <select
+                        value={panel.count}
+                        onChange={(e) => updateVisualPanel(type, 'count', Number(e.target.value))}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        {[1, 2, 3, 4, 6, 9].map(num => (
+                          <option key={num} value={num}>{num} Görsel</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Stil</label>
+                      <select
+                        value={panel.style}
+                        onChange={(e) => updateVisualPanel(type, 'style', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="Modern">Modern</option>
+                        <option value="Minimal">Minimal</option>
+                        <option value="Parlak">Parlak</option>
+                        <option value="Karanlık">Karanlık</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <FileText className="w-3 h-3 inline mr-1" />
+                      Görsel Açıklaması
+                    </label>
+                    <div className="relative">
+                      <textarea
+                        value={panel.description}
+                        onChange={(e) => updateVisualPanel(type, 'description', e.target.value)}
+                        placeholder="İstediğiniz görselin stilini, ruh halini, renklerini açıklayın"
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none pr-10"
+                      />
+                      <div className="absolute right-1 top-1 flex flex-col gap-1">
+                        {!isRecording ? (
+                          <button
+                            type="button"
+                            onClick={() => startVoiceRecording('visual', type)}
+                            className="p-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded transition-colors"
+                            title="Sesli kayıt başlat"
+                          >
+                            <Mic className="w-3 h-3" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => stopVoiceRecording('visual')}
+                            className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors animate-pulse"
+                            title="Kaydı durdur"
+                          >
+                            <MicOff className="w-3 h-3" />
+                          </button>
+                        )}
+                        {panel.descriptionAudioUrl && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => playAudio(panel.descriptionAudioUrl)}
+                              className="p-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded transition-colors"
+                              title="Kaydı dinle"
+                            >
+                              <Volume2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => retryVoiceRecording('visual', type)}
+                              className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+                              title="Yeniden kaydet"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Influencer</label>
+                    <select
+                      value={panel.influencer}
+                      onChange={(e) => updateVisualPanel(type, 'influencer', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">Influencer Seçiniz</option>
+                      {influencers.map((inf) => (
+                        <option key={inf.id} value={inf.id}>
+                          {inf.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Platformlar</label>
+                    <div className="flex flex-wrap gap-2">
+                      {PLATFORMS.map((platform) => (
+                        <button
+                          key={platform.id}
+                          onClick={() => toggleVisualPlatform(type, platform.id)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs border transition-all ${
+                            panel.platforms.includes(platform.id)
+                              ? 'bg-blue-100 border-blue-500 text-blue-700'
+                              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {platform.icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Görsel Boyutu</label>
+                    <select
+                      value={panel.size}
+                      onChange={(e) => updateVisualPanel(type, 'size', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      {IMAGE_SIZES.map((size) => (
+                        <option key={size.value} value={size.value}>{size.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {type === 'reference' && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">
+                        Referans Modu <span className="text-red-500">*</span>
+                      </label>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`visual-reference-mode-${type}`}
+                            checked={panel.referenceMode === 'exact'}
+                            onChange={() => updateVisualPanel(type, 'referenceMode', 'exact')}
+                            className="text-purple-600"
+                          />
+                          <span className="text-sm">Birebir Aynı Olsun</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`visual-reference-mode-${type}`}
+                            checked={panel.referenceMode === 'similar'}
+                            onChange={() => updateVisualPanel(type, 'referenceMode', 'similar')}
+                            className="text-purple-600"
+                          />
+                          <span className="text-sm">Benzer Olsun</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => completeVisualPanel(type)}
+                    disabled={panel.completed}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                      panel.completed
+                        ? 'bg-green-500 text-white cursor-not-allowed'
+                        : 'bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white'
+                    }`}
+                  >
+                    <Check className="w-4 h-4" />
+                    {panel.completed ? 'Tamamlandı' : 'Tamamla'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        {/* RIGHT COLUMN */}
+        <div className="space-y-6">
+          {/* Product Information Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Ürün Bilgileri</h3>
 
             <div className="space-y-3">
@@ -602,7 +1121,7 @@ export default function ProductUploadPage() {
                   value={productCode}
                   onChange={(e) => setProductCode(e.target.value)}
                   placeholder="Örn: PRD-2024-001"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -615,7 +1134,7 @@ export default function ProductUploadPage() {
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   placeholder="Ürün adını girin"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -627,344 +1146,249 @@ export default function ProductUploadPage() {
                   value={productDescription}
                   onChange={(e) => setProductDescription(e.target.value)}
                   placeholder="Ürün özelliklerini, avantajlarını ve kullanım alanlarını açıklayın..."
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <Package className="w-4 h-4 inline mr-1" />
+                    Stok Adedi <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={productStock}
+                    onChange={(e) => setProductStock(e.target.value)}
+                    placeholder="100"
+                    min="0"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Ürün Fiyatı <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={productPrice}
+                    onChange={(e) => setProductPrice(e.target.value)}
+                    placeholder="129.99"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <LinkIcon className="w-4 h-4 inline mr-1" />
+                  Ürünün Linki
+                </label>
+                <input
+                  type="url"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  placeholder="https://example.com/product"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <LinkIcon className="w-4 h-4 inline mr-1" />
+                  Benzer (referans) ürünün linki
+                </label>
+                <input
+                  type="url"
+                  value={referenceProductUrl}
+                  onChange={(e) => setReferenceProductUrl(e.target.value)}
+                  placeholder="https://example.com/similar-product"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
 
-          {/* Side-by-side layout for Image and Video Generation */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Image Generation Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <ImageIcon className="w-6 h-6 text-purple-600" />
-                Görsel Oluşturma
-              </h3>
-
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Görsel Sayısı</label>
-                  <select
-                    value={imageCount}
-                    onChange={(e) => setImageCount(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                      <option key={num} value={num}>{num} Görsel</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Stil</label>
-                  <select
-                    value={imageStyle}
-                    onChange={(e) => setImageStyle(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="modern">Modern</option>
-                    <option value="minimal">Minimal</option>
-                    <option value="luxury">Lüks</option>
-                    <option value="vintage">Vintage</option>
-                    <option value="colorful">Renkli</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <FileText className="w-4 h-4 inline mr-1" />
-                  Görsel Açıklaması
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={imageVisualDescription}
-                    onChange={(e) => setImageVisualDescription(e.target.value)}
-                    placeholder="İstediğiniz görselin stilini, ruh halini, renklerini, konularını ve kompozisyonunu açıklayın. Örn: Modern ve minimal stil, parlak renkler, ürün merkezli, beyaz arka plan"
-                    rows={5}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none pr-12"
-                  />
-                  <div className="absolute right-2 top-2 flex flex-col gap-1">
-                    {!isRecordingImage ? (
-                      <button
-                        type="button"
-                        onClick={() => startImageVoiceRecording('image')}
-                        className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors"
-                        title="Sesli kayıt başlat"
-                      >
-                        <Mic className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => stopVoiceRecording('image')}
-                        className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors animate-pulse"
-                        title="Kaydı durdur"
-                      >
-                        <MicOff className="w-4 h-4" />
-                      </button>
-                    )}
-                    {imageAudioUrl && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => playAudio(imageAudioUrl)}
-                          className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
-                          title="Kaydı dinle"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => retryVoiceRecording('image')}
-                          className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                          title="Yeniden kaydet"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {isRecordingImage && (
-                  <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                    {isProcessingImageSpeech ? 'Ses kaydediliyor ve metne dönüştürülüyor...' : 'Kayıt devam ediyor...'}
-                  </div>
-                )}
-                {imageAudioUrl && !isRecordingImage && (
-                  <div className="flex items-center gap-2 mt-2 text-xs text-green-600">
-                    <Check className="w-3 h-3" />
-                    Ses kaydı tamamlandı. Metni düzenleyebilir veya kaydı dinleyebilirsiniz.
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Influencer</label>
-                <select
-                  value={selectedImageInfluencer}
-                  onChange={(e) => setSelectedImageInfluencer(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Influencer Seçiniz</option>
-                  {influencers.map((inf, idx) => (
-                    <option key={inf.id} value={inf.id}>
-                      Influencer {idx + 1} - {inf.name}
-                    </option>
-                  ))}
-                </select>
-                {influencers.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Henüz influencer oluşturmadınız. Marka Yönetimi &gt; Influencer Yaratma sayfasından oluşturabilirsiniz.
-                  </p>
-                )}
-              </div>
-
-              {!isWebProduct && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Platformlar</label>
-                  <div className="flex flex-wrap gap-2">
-                    {PLATFORMS.filter(p => p.id !== 'website-product').map((platform) => (
-                      <button
-                        key={platform.id}
-                        onClick={() => toggleImagePlatform(platform.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                          selectedImagePlatforms.includes(platform.id)
-                            ? 'bg-blue-100 border-blue-500 text-blue-700'
-                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {platform.icon}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {isWebProduct && (
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800 font-medium">Web Ürün</p>
-                </div>
-              )}
-
-              <button
-                onClick={handleGenerateImages}
-                disabled={imagesCompleted || !productCode || !productName}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-lg font-semibold text-lg transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl ${
-                  imagesCompleted
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white disabled:opacity-50'
-                }`}
-              >
-                {imagesCompleted ? (
-                  <>
-                    <Check className="w-6 h-6" />
-                    Tamamlandı
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-6 h-6" />
-                    Tamamla
-                  </>
-                )}
-              </button>
-            </div>
-            </div>
-
-            {/* Video Generation Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Video className="w-6 h-6 text-red-600" />
+          {/* Video Creation Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Video className="w-5 h-5 text-red-600" />
                 Video Oluşturma
               </h3>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Video Tipleri (Birden fazla seçebilirsiniz)</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => toggleVideoType('promotional')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-all ${
-                      selectedVideoTypes.includes('promotional')
-                        ? 'bg-red-50 border-red-500 text-red-700'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Film className="w-5 h-5" />
-                    Tanıtım Videosu
-                  </button>
-                  <button
-                    onClick={() => toggleVideoType('story')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-all ${
-                      selectedVideoTypes.includes('story')
-                        ? 'bg-amber-50 border-amber-500 text-amber-700'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Scroll className="w-5 h-5" />
-                    Hikaye Videosu
-                  </button>
-                </div>
+              <div className="text-right text-xs">
+                <label className="block text-gray-600 mb-1">Video Arka Planı</label>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setVideoBackgroundImage(file);
+                      setVideoBackgroundImageUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                  accept="image/*"
+                  className="text-xs"
+                />
+                {videoBackgroundImageUrl && (
+                  <img src={videoBackgroundImageUrl} className="w-16 h-16 object-cover rounded mt-1" alt="Background" />
+                )}
               </div>
+            </div>
 
-              {selectedVideoTypes.includes('promotional') && (
-                <div className="p-4 bg-red-50 rounded-lg border border-red-100 space-y-4">
-                  <h4 className="text-base font-semibold text-red-700 mb-2">Tanıtım Videosu Ayarları</h4>
+            <p className="text-xs text-gray-500 mb-4">Video Tipleri (Birden fazla seçebilirsiniz)</p>
+
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <button
+                onClick={() => toggleVideoType('promo')}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg border-2 font-medium transition-all text-xs ${
+                  selectedVideoTypes.includes('promo')
+                    ? 'bg-red-50 border-red-500 text-red-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Film className="w-5 h-5" />
+                <span>Tanıtım</span>
+                <span className="text-[10px]">Videosu</span>
+              </button>
+              <button
+                onClick={() => toggleVideoType('story')}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg border-2 font-medium transition-all text-xs ${
+                  selectedVideoTypes.includes('story')
+                    ? 'bg-amber-50 border-amber-500 text-amber-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Play className="w-5 h-5" />
+                <span>Hikaye</span>
+                <span className="text-[10px]">Videosu</span>
+              </button>
+              <button
+                onClick={() => toggleVideoType('reference')}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg border-2 font-medium transition-all text-xs ${
+                  selectedVideoTypes.includes('reference')
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <TrendingUp className="w-5 h-5" />
+                <span>Referans Video</span>
+                <span className="text-[10px]">(Trendler)</span>
+              </button>
+            </div>
+
+            {selectedVideoTypes.map((type) => {
+              const panel = videoPanels[type];
+              const isRecording = isRecordingVideo === type;
+
+              return (
+                <div key={type} className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-3 space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-900 capitalize flex items-center justify-between">
+                    <span>{type === 'promo' ? 'Tanıtım Videosu' : type === 'story' ? 'Hikaye Videosu' : 'Referans Video'}</span>
+                    {panel.completed && <Check className="w-5 h-5 text-green-600" />}
+                  </h4>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Sayısı</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Video Sayısı</label>
                     <select
-                      value={promotionalVideoCount}
-                      onChange={(e) => setPromotionalVideoCount(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      value={panel.count}
+                      onChange={(e) => updateVideoPanel(type, 'count', Number(e.target.value))}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
-                      <option value={1}>1 Video</option>
-                      <option value={2}>2 Video</option>
-                      <option value={3}>3 Video</option>
+                      {[1, 2, 3].map(num => (
+                        <option key={num} value={num}>{num} Video</option>
+                      ))}
                     </select>
                   </div>
 
-                  {!isWebProduct && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Platformlar</label>
-                      <div className="flex flex-wrap gap-2">
-                        {PLATFORMS.filter(p => p.id !== 'website-product').map((platform) => (
-                          <button
-                            key={platform.id}
-                            onClick={() => togglePromotionalVideoPlatform(platform.id)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                              selectedPromotionalVideoPlatforms.includes(platform.id)
-                                ? 'bg-red-100 border-red-500 text-red-700'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            {platform.icon}
-                          </button>
-                        ))}
-                      </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Platformlar</label>
+                    <div className="flex flex-wrap gap-2">
+                      {PLATFORMS.map((platform) => (
+                        <button
+                          key={platform.id}
+                          onClick={() => toggleVideoPlatform(type, platform.id)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs border transition-all ${
+                            panel.platforms.includes(platform.id)
+                              ? 'bg-red-100 border-red-500 text-red-700'
+                              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {platform.icon}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FileText className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <FileText className="w-3 h-3 inline mr-1" />
                       Video Açıklaması
                     </label>
                     <div className="relative">
                       <textarea
-                        value={promotionalVideoDescription}
-                        onChange={(e) => setPromotionalVideoDescription(e.target.value)}
-                        placeholder="Nasıl bir tanıtım videosu istiyorsunuz? Örn: Ürünün özelliklerini vurgulayan dinamik bir video, hızlı geçişler, enerjik müzik"
-                        rows={5}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none pr-12"
+                        value={panel.description}
+                        onChange={(e) => updateVideoPanel(type, 'description', e.target.value)}
+                        placeholder="Nasıl bir video istiyorsunuz?"
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none pr-10"
                       />
-                      <div className="absolute right-2 top-2 flex flex-col gap-1">
-                        {!isRecordingPromotionalVideo ? (
+                      <div className="absolute right-1 top-1 flex flex-col gap-1">
+                        {!isRecording ? (
                           <button
                             type="button"
-                            onClick={() => startImageVoiceRecording('promotional-video')}
-                            className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                            onClick={() => startVoiceRecording('video', type)}
+                            className="p-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors"
                             title="Sesli kayıt başlat"
                           >
-                            <Mic className="w-4 h-4" />
+                            <Mic className="w-3 h-3" />
                           </button>
                         ) : (
                           <button
                             type="button"
-                            onClick={() => stopVoiceRecording('promotional-video')}
-                            className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors animate-pulse"
+                            onClick={() => stopVoiceRecording('video')}
+                            className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors animate-pulse"
                             title="Kaydı durdur"
                           >
-                            <MicOff className="w-4 h-4" />
+                            <MicOff className="w-3 h-3" />
                           </button>
                         )}
-                        {promotionalVideoAudioUrl && (
+                        {panel.descriptionAudioUrl && (
                           <>
                             <button
                               type="button"
-                              onClick={() => playAudio(promotionalVideoAudioUrl)}
-                              className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
+                              onClick={() => playAudio(panel.descriptionAudioUrl)}
+                              className="p-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded transition-colors"
                               title="Kaydı dinle"
                             >
-                              <Volume2 className="w-4 h-4" />
+                              <Volume2 className="w-3 h-3" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => retryVoiceRecording('promotional-video')}
-                              className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                              onClick={() => retryVoiceRecording('video', type)}
+                              className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
                               title="Yeniden kaydet"
                             >
-                              <RefreshCw className="w-4 h-4" />
+                              <RefreshCw className="w-3 h-3" />
                             </button>
                           </>
                         )}
                       </div>
                     </div>
-                    {isRecordingPromotionalVideo && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
-                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        {isProcessingPromotionalVideoSpeech ? 'Ses kaydediliyor ve metne dönüştürülüyor...' : 'Kayıt devam ediyor...'}
-                      </div>
-                    )}
-                    {promotionalVideoAudioUrl && !isRecordingPromotionalVideo && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-green-600">
-                        <Check className="w-3 h-3" />
-                        Ses kaydı tamamlandı. Metni düzenleyebilir veya kaydı dinleyebilirsiniz.
-                      </div>
-                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Süre</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Süre</label>
                       <select
-                        value={promotionalVideoDuration}
-                        onChange={(e) => setPromotionalVideoDuration(Number(e.target.value))}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                        value={panel.duration}
+                        onChange={(e) => updateVideoPanel(type, 'duration', Number(e.target.value))}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       >
                         <option value={15}>15 saniye</option>
                         <option value={30}>30 saniye</option>
@@ -973,401 +1397,160 @@ export default function ProductUploadPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Stil</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Stil</label>
                       <select
-                        value={promotionalVideoStyle}
-                        onChange={(e) => setPromotionalVideoStyle(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                        value={panel.style}
+                        onChange={(e) => updateVideoPanel(type, 'style', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       >
-                        <option value="showcase">Ürün Vitrin</option>
-                        <option value="features">Özellik Vurgulama</option>
-                        <option value="comparison">Karşılaştırma</option>
-                        <option value="benefits">Fayda Odaklı</option>
+                        <option value="Ürün Vitrin">Ürün Vitrin</option>
+                        <option value="Müşteri Yolculuğu">Müşteri Yolculuğu</option>
+                        <option value="Trend">Trend</option>
                       </select>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Çağrı Metni</label>
-                      <input
-                        type="text"
-                        value={callToAction}
-                        onChange={(e) => setCallToAction(e.target.value)}
-                        placeholder="Örn: Hemen Satın Al, Bugün Sipariş Ver"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Influencer</label>
-                      <select
-                        value={promotionalVideoInfluencer}
-                        onChange={(e) => setPromotionalVideoInfluencer(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                      >
-                        <option value="">Influencer Seçiniz</option>
-                        {influencers.map((inf, idx) => (
-                          <option key={inf.id} value={inf.id}>
-                            Influencer {idx + 1} - {inf.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedVideoTypes.includes('story') && (
-                <div className="p-4 bg-amber-50 rounded-lg border border-amber-100 space-y-4">
-                  <h4 className="text-base font-semibold text-amber-700 mb-2">Hikaye Videosu Ayarları</h4>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Sayısı</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Çağrı Metni</label>
+                    <input
+                      type="text"
+                      value={panel.ctaText}
+                      onChange={(e) => updateVideoPanel(type, 'ctaText', e.target.value)}
+                      placeholder="Örn: Hemen Satın Al"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Influencer</label>
                     <select
-                      value={storyVideoCount}
-                      onChange={(e) => setStoryVideoCount(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      value={panel.influencer}
+                      onChange={(e) => updateVideoPanel(type, 'influencer', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
-                      <option value={1}>1 Video</option>
-                      <option value={2}>2 Video</option>
-                      <option value={3}>3 Video</option>
+                      <option value="">Influencer Seçiniz</option>
+                      {influencers.map((inf) => (
+                        <option key={inf.id} value={inf.id}>
+                          {inf.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {!isWebProduct && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Platformlar</label>
-                      <div className="flex flex-wrap gap-2">
-                        {PLATFORMS.filter(p => p.id !== 'website-product').map((platform) => (
-                          <button
-                            key={platform.id}
-                            onClick={() => toggleStoryVideoPlatform(platform.id)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                              selectedStoryVideoPlatforms.includes(platform.id)
-                                ? 'bg-amber-100 border-amber-500 text-amber-700'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            {platform.icon}
-                          </button>
-                        ))}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Video Boyutu</label>
+                    <select
+                      value={panel.size}
+                      onChange={(e) => updateVideoPanel(type, 'size', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      {VIDEO_SIZES.map((size) => (
+                        <option key={size.value} value={size.value}>{size.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {type === 'reference' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Referans Video Yükle</label>
+                        <input
+                          type="file"
+                          onChange={(e) => handleReferenceVideoUpload(type, e)}
+                          accept="video/*"
+                          className="w-full text-sm"
+                        />
+                        {panel.referenceVideoUrl && (
+                          <video src={panel.referenceVideoUrl} className="w-full h-24 object-cover rounded mt-2" controls />
+                        )}
                       </div>
-                    </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-2">
+                          Referans Modu <span className="text-red-500">*</span>
+                        </label>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`video-reference-mode-${type}`}
+                              checked={panel.referenceMode === 'exact'}
+                              onChange={() => updateVideoPanel(type, 'referenceMode', 'exact')}
+                              className="text-red-600"
+                            />
+                            <span className="text-sm">Birebir Aynı Olsun</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`video-reference-mode-${type}`}
+                              checked={panel.referenceMode === 'similar'}
+                              onChange={() => updateVideoPanel(type, 'referenceMode', 'similar')}
+                              className="text-red-600"
+                            />
+                            <span className="text-sm">Benzer Olsun</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-2">Ses Kullanımı</label>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`video-audio-${type}`}
+                              checked={panel.useOriginalAudio}
+                              onChange={() => updateVideoPanel(type, 'useOriginalAudio', true)}
+                              className="text-red-600"
+                            />
+                            <span className="text-sm">Orijinal sesi kullan</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`video-audio-${type}`}
+                              checked={!panel.useOriginalAudio}
+                              onChange={() => updateVideoPanel(type, 'useOriginalAudio', false)}
+                              className="text-red-600"
+                            />
+                            <span className="text-sm">Yeni ses kullan</span>
+                          </label>
+                        </div>
+                      </div>
+                    </>
                   )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FileText className="w-4 h-4 inline mr-1" />
-                      Hikaye Anlatımı
-                    </label>
-                    <div className="relative">
-                      <textarea
-                        value={storyVideoDescription}
-                        onChange={(e) => setStoryVideoDescription(e.target.value)}
-                        placeholder="Nasıl bir hikaye anlatmak istiyorsunuz? Örn: Ürünün müşteri hayatındaki dönüşümü, duygusal bağlantı, ilham verici müzik"
-                        rows={5}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none pr-12"
-                      />
-                      <div className="absolute right-2 top-2 flex flex-col gap-1">
-                        {!isRecordingStoryVideo ? (
-                          <button
-                            type="button"
-                            onClick={() => startImageVoiceRecording('story-video')}
-                            className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg transition-colors"
-                            title="Sesli kayıt başlat"
-                          >
-                            <Mic className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => stopVoiceRecording('story-video')}
-                            className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors animate-pulse"
-                            title="Kaydı durdur"
-                          >
-                            <MicOff className="w-4 h-4" />
-                          </button>
-                        )}
-                        {storyVideoAudioUrl && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => playAudio(storyVideoAudioUrl)}
-                              className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
-                              title="Kaydı dinle"
-                            >
-                              <Volume2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => retryVoiceRecording('story-video')}
-                              className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                              title="Yeniden kaydet"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {isRecordingStoryVideo && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
-                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        {isProcessingStoryVideoSpeech ? 'Ses kaydediliyor ve metne dönüştürülüyor...' : 'Kayıt devam ediyor...'}
-                      </div>
-                    )}
-                    {storyVideoAudioUrl && !isRecordingStoryVideo && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-green-600">
-                        <Check className="w-3 h-3" />
-                        Ses kaydı tamamlandı. Metni düzenleyebilir veya kaydı dinleyebilirsiniz.
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Süre</label>
-                      <select
-                        value={storyVideoDuration}
-                        onChange={(e) => setStoryVideoDuration(Number(e.target.value))}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value={30}>30 saniye</option>
-                        <option value={60}>60 saniye</option>
-                        <option value={90}>90 saniye</option>
-                        <option value={120}>2 dakika</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Anlatım Tonu</label>
-                      <select
-                        value={narrativeTone}
-                        onChange={(e) => setNarrativeTone(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="inspirational">İlham Verici</option>
-                        <option value="educational">Eğitici</option>
-                        <option value="entertainment">Eğlenceli</option>
-                        <option value="documentary">Belgesel Tarzı</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Hikaye Stili</label>
-                      <select
-                        value={storyVideoStyle}
-                        onChange={(e) => setStoryVideoStyle(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="customer-journey">Müşteri Yolculuğu</option>
-                        <option value="behind-scenes">Perde Arkası</option>
-                        <option value="problem-solution">Problem-Çözüm</option>
-                        <option value="brand-story">Marka Hikayesi</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Influencer</label>
-                      <select
-                        value={storyVideoInfluencer}
-                        onChange={(e) => setStoryVideoInfluencer(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="">Influencer Seçiniz</option>
-                        {influencers.map((inf, idx) => (
-                          <option key={inf.id} value={inf.id}>
-                            Influencer {idx + 1} - {inf.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => completeVideoPanel(type)}
+                    disabled={panel.completed}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                      panel.completed
+                        ? 'bg-green-500 text-white cursor-not-allowed'
+                        : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white'
+                    }`}
+                  >
+                    <Check className="w-4 h-4" />
+                    {panel.completed ? 'Tamamlandı' : 'Tamamla'}
+                  </button>
                 </div>
-              )}
-
-              <button
-                onClick={handleGenerateVideos}
-                disabled={videosCompleted || !productCode || !productName || selectedVideoTypes.length === 0}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-lg font-semibold text-lg transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl ${
-                  videosCompleted
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white disabled:opacity-50'
-                }`}
-              >
-                {videosCompleted ? (
-                  <>
-                    <Check className="w-6 h-6" />
-                    Tamamlandı
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-6 h-6" />
-                    Tamamla
-                  </>
-                )}
-              </button>
-            </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {showResults && (generatedImages.length > 0 || generatedVideos.length > 0) && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">Oluşturulan İçerikler</h3>
-            <button
-              onClick={handlePublishAll}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-5 py-2 rounded-lg font-medium transition-all"
-            >
-              <Check className="w-4 h-4" />
-              Tümünü Yayınla ({generatedImages.length + generatedVideos.length})
-            </button>
-          </div>
-
-          {generatedImages.length > 0 && (
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-purple-600" />
-                Görseller ({generatedImages.length})
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {generatedImages.map((image) => (
-                  <div key={image.id} className="group relative bg-gray-50 rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
-                    <div className="aspect-square overflow-hidden">
-                      <img
-                        src={image.url}
-                        alt="Generated"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-
-                    <div className="p-3 space-y-2">
-                      {image.influencerId && (
-                        <p className="text-xs text-gray-600">
-                          <span className="font-medium">Influencer:</span> {getInfluencerName(image.influencerId)}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap gap-1">
-                        {image.platforms.map((platformId) => {
-                          const platform = PLATFORMS.find(p => p.id === platformId);
-                          return platform ? (
-                            <span key={platformId} className="inline-flex items-center p-1 bg-blue-100 text-blue-700 rounded">
-                              {platform.icon}
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveContent(image.id)}
-                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                          Onayla
-                        </button>
-                        <button
-                          onClick={() => handleRejectContent(image.id)}
-                          className="flex items-center justify-center px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {generatedVideos.length > 0 && (
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Video className="w-5 h-5 text-red-600" />
-                Videolar ({generatedVideos.length})
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {generatedVideos.map((video) => (
-                  <div key={video.id} className="group relative bg-gray-50 rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
-                    <div className="aspect-video overflow-hidden relative">
-                      <img src={video.url} alt="Video thumbnail" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-red-600 ml-1" />
-                        </div>
-                      </div>
-                      {video.videoType && (
-                        <div className="absolute top-2 right-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            video.videoType === 'promotional'
-                              ? 'bg-red-500 text-white'
-                              : 'bg-amber-500 text-white'
-                          }`}>
-                            {video.videoType === 'promotional' ? 'Tanıtım' : 'Hikaye'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-3 space-y-2">
-                      {video.influencerId && (
-                        <p className="text-xs text-gray-600">
-                          <span className="font-medium">Influencer:</span> {getInfluencerName(video.influencerId)}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap gap-1">
-                        {video.platforms.map((platformId) => {
-                          const platform = PLATFORMS.find(p => p.id === platformId);
-                          return platform ? (
-                            <span key={platformId} className="inline-flex items-center p-1 bg-blue-100 text-blue-700 rounded">
-                              {platform.icon}
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveContent(video.id)}
-                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                          Onayla
-                        </button>
-                        <button
-                          onClick={() => handleRejectContent(video.id)}
-                          className="flex items-center justify-center px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+      {/* Keywords and Target Audience */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Tag className="w-5 h-5 text-blue-600" />
           Anahtar Kelimeler ve Hedef Kitle
         </h3>
-        <p className="text-sm text-blue-600 mb-4 flex items-start gap-2">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
+        <p className="text-sm text-blue-600 mb-4">
           Yapay zekamız bu bilgileri otomatik olarak analiz edip önerilerde sunar.
         </p>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Anahtar Kelimeler
@@ -1377,7 +1560,7 @@ export default function ProductUploadPage() {
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
               placeholder="elbise, kadife, sonbahar, şık, zarif"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500 mt-1.5">Virgülle ayırarak yazın</p>
           </div>
@@ -1392,15 +1575,33 @@ export default function ProductUploadPage() {
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
               placeholder="genç kadınlar, minimalist tarz, 25-35 yaş arası"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500 mt-1.5">Hedef kitlenizi tanımlayın</p>
           </div>
         </div>
+      </div>
 
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <h4 className="font-semibold text-red-900 mb-2">Lütfen aşağıdaki hataları düzeltin:</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {validationErrors.map((error, index) => (
+              <li key={index} className="text-sm text-red-700">{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Create Product Button */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-sm border border-green-200 p-6">
+        <p className="text-sm text-gray-600 mb-4">
+          Hedef kitlenizi tanımlayın
+        </p>
         <button
           onClick={handleCreateProduct}
-          disabled={isCreatingProduct || !productCode || !productName}
+          disabled={isCreatingProduct}
           className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-5 rounded-xl font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl"
         >
           {isCreatingProduct ? (
@@ -1417,175 +1618,7 @@ export default function ProductUploadPage() {
         </button>
       </div>
 
-      {productCreated && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Check className="w-6 h-6 text-green-600" />
-            Ürün Başarıyla Oluşturuldu
-          </h3>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Oluşturulan Görseller</h4>
-              <div className="grid grid-cols-2 gap-3">
-                {generatedImages.slice(0, 4).map((image) => (
-                  <div key={image.id} className="aspect-square rounded-lg overflow-hidden border border-gray-200">
-                    <img src={image.url} alt="Generated" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 space-y-6">
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Yapay Zeka Tarafından Üretilen İçerik</h4>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Ürün Başlığı</p>
-                    <p className="text-gray-900">{productName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">AI Açıklaması</p>
-                    <p className="text-gray-600 text-sm">{productDescription || 'Yapay zeka tarafından oluşturulan ürün açıklaması burada görünecek...'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Anahtar Kelimeler</p>
-                    <p className="text-gray-600 text-sm">{keywords || 'modern, şık, kaliteli, trend'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {productCreated && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <div>
-            <h4 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-blue-600" />
-              Ürün Paylaşımı
-            </h4>
-            <div>
-              <h5 className="text-lg font-semibold text-gray-900 mb-4">Paylaşım Platformlarını Seçin</h5>
-                <div className="flex flex-wrap gap-3 mb-6">
-                  {PLATFORMS.map((platform) => (
-                    <button
-                      key={platform.id}
-                      onClick={() => togglePlatformSelection(platform.id)}
-                      className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-all ${
-                        selectedPlatforms.includes(platform.id)
-                          ? 'bg-blue-50 border-blue-500 text-blue-700'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {platform.icon}
-                      <span className="text-sm">{platform.name}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {selectedPlatforms.length > 0 && (
-                  <div className="space-y-4">
-                    {selectedPlatforms.map((platformId) => {
-                      const platform = PLATFORMS.find(p => p.id === platformId);
-                      return (
-                        <div key={platformId} className="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
-                          <div className="flex items-center gap-2 mb-4">
-                            {platform?.icon}
-                            <h5 className="text-lg font-semibold text-gray-900">{platform?.name}</h5>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Ürün İsmi
-                              </label>
-                              <input
-                                type="text"
-                                value={platformMetadata[platformId]?.title || productName}
-                                onChange={(e) => updatePlatformMetadata(platformId, 'title', e.target.value)}
-                                placeholder="Ürün ismi"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Meta Başlık
-                              </label>
-                              <input
-                                type="text"
-                                value={platformMetadata[platformId]?.metaTitle || ''}
-                                onChange={(e) => updatePlatformMetadata(platformId, 'metaTitle', e.target.value)}
-                                placeholder="SEO meta başlığı"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Paylaşım Açıklaması
-                            </label>
-                            <textarea
-                              value={platformMetadata[platformId]?.description || productDescription}
-                              onChange={(e) => updatePlatformMetadata(platformId, 'description', e.target.value)}
-                              placeholder="Platformda görünecek açıklama"
-                              rows={3}
-                              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Anahtar Kelimeler
-                              </label>
-                              <input
-                                type="text"
-                                value={platformMetadata[platformId]?.metaKeywords || keywords}
-                                onChange={(e) => updatePlatformMetadata(platformId, 'metaKeywords', e.target.value)}
-                                placeholder="anahtar, kelimeler"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Hedef Kitle
-                              </label>
-                              <input
-                                type="text"
-                                value={platformMetadata[platformId]?.targetAudience || targetAudience}
-                                onChange={(e) => updatePlatformMetadata(platformId, 'targetAudience', e.target.value)}
-                                placeholder="Hedef kitle"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {selectedPlatforms.length > 0 && (
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={handlePublishToAllPlatforms}
-                      className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-5 rounded-xl font-bold text-xl transition-all shadow-xl hover:shadow-2xl"
-                    >
-                      <Sparkles className="w-7 h-7" />
-                      Paylaş
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-      )}
-
+      {/* Camera Modal */}
       {showCamera && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6">
