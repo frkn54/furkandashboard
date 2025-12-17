@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import CashFlowTimeline from '../components/CashFlowTimeline';
-import DateRangePicker from '../components/DateRangePicker';
+import QuickActionsCards from '../components/QuickActionsCards';
 import KPICards from '../components/KPICards';
 import DashboardWidgets from '../components/DashboardWidgets';
 
 interface DashboardHomeProps {
   onNewProduct: () => void;
+  onPageChange?: (page: string) => void;
 }
 
-export default function DashboardHome({ onNewProduct }: DashboardHomeProps) {
+export default function DashboardHome({ onNewProduct, onPageChange }: DashboardHomeProps) {
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
@@ -21,15 +22,14 @@ export default function DashboardHome({ onNewProduct }: DashboardHomeProps) {
 
   return (
     <div>
-      <CashFlowTimeline />
-      <DateRangePicker
+      <CashFlowTimeline onPageChange={onPageChange} />
+      <QuickActionsCards onNewProduct={onNewProduct} onPageChange={onPageChange} />
+      <KPICards
         startDate={startDate}
         endDate={endDate}
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
-        onNewProduct={onNewProduct}
       />
-      <KPICards startDate={startDate} endDate={endDate} />
       <DashboardWidgets startDate={startDate} endDate={endDate} />
     </div>
   );

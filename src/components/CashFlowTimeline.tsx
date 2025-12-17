@@ -11,7 +11,11 @@ interface CashFlowEntry {
   note: string;
 }
 
-export default function CashFlowTimeline() {
+interface CashFlowTimelineProps {
+  onPageChange?: (page: string) => void;
+}
+
+export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps = {}) {
   const [showModal, setShowModal] = useState(false);
   const [showEntriesModal, setShowEntriesModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
@@ -35,8 +39,8 @@ export default function CashFlowTimeline() {
       .from('cash_flow')
       .select('*')
       .eq('user_id', user.id)
-      .gte('date', getLast40DaysRange().start)
-      .lte('date', getLast40DaysRange().end)
+      .gte('date', getLast35DaysRange().start)
+      .lte('date', getLast35DaysRange().end)
       .order('date', { ascending: true });
 
     if (error) {
@@ -61,10 +65,10 @@ export default function CashFlowTimeline() {
     setCashFlowData(flowMap);
   };
 
-  const getLast40DaysRange = () => {
+  const getLast35DaysRange = () => {
     const today = new Date();
     const start = new Date(today);
-    start.setDate(today.getDate() - 8);
+    start.setDate(today.getDate() - 3);
     const end = new Date(today);
     end.setDate(today.getDate() + 31);
 
@@ -74,11 +78,11 @@ export default function CashFlowTimeline() {
     };
   };
 
-  const generate40Days = () => {
+  const generate35Days = () => {
     const days = [];
     const today = new Date();
 
-    for (let i = -8; i <= 31; i++) {
+    for (let i = -3; i <= 31; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       days.push({
@@ -90,6 +94,30 @@ export default function CashFlowTimeline() {
     }
 
     return days;
+  };
+
+  const getCurrentMonthName = () => {
+    const months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    return months[new Date().getMonth()];
+  };
+
+  const getCurrentQuarterInfo = () => {
+    const today = new Date();
+    const month = today.getMonth();
+    const quarter = Math.floor(month / 3) + 1;
+
+    const quarterStartMonth = (quarter - 1) * 3;
+    const quarterStart = new Date(today.getFullYear(), quarterStartMonth, 1);
+    const quarterEnd = new Date(today.getFullYear(), quarterStartMonth + 3, 0);
+
+    const totalDays = Math.floor((quarterEnd.getTime() - quarterStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const daysPassed = Math.floor((today.getTime() - quarterStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const percentage = Math.round((daysPassed / totalDays) * 100);
+
+    return `${quarter}.Çeyrek (${percentage}%)`;
   };
 
   const handleDayClick = (dateStr: string) => {
@@ -181,34 +209,47 @@ export default function CashFlowTimeline() {
     }
   };
 
-  const days = generate40Days();
+  const days = generate35Days();
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-3">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-bold text-gray-900">Nakit Akışı (40 Günlük)</h2>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-3">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => onPageChange?.('finance-cashflow')}
+            className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium border border-gray-200"
+          >
+            Tüm Zamanlar
+          </button>
+          <span className="text-sm font-semibold text-gray-700">
+            {getCurrentQuarterInfo()}
+          </span>
+          <span className="text-sm font-bold text-gray-900">
+            {getCurrentMonthName()}
+          </span>
+        </div>
         <div className="flex items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
             <span className="text-gray-600">Para Girişi</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div>
             <span className="text-gray-600">Para Çıkışı</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
             <span className="text-gray-600">Her İkisi</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+            <div className="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
             <span className="text-gray-600">İşlem Yok</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-20 gap-1">
-        {days.slice(0, 20).map((day) => {
+      <div className="flex gap-1.5">
+        {days.map((day) => {
           const entries = cashFlowData[day.date] || [];
           const hasIncome = entries.some(e => e.type === 'income');
           const hasExpense = entries.some(e => e.type === 'expense');
@@ -218,11 +259,11 @@ export default function CashFlowTimeline() {
             <button
               key={day.date}
               onClick={() => handleDayClick(day.date)}
-              className={`w-full aspect-square rounded border transition-all hover:scale-110 ${
+              className={`flex-1 aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
                 day.isToday
-                  ? 'border-blue-500 bg-blue-50'
+                  ? 'border-blue-500 bg-blue-50 shadow-md'
                   : hasBoth
-                  ? 'border-purple-500 bg-purple-50'
+                  ? 'border-blue-400 bg-blue-50'
                   : hasIncome
                   ? 'border-green-500 bg-green-50'
                   : hasExpense
@@ -232,52 +273,13 @@ export default function CashFlowTimeline() {
               title={`${day.dayNum} - ${entries.length > 0 ? `${entries.length} işlem` : 'İşlem yok'}`}
             >
               <div className="flex flex-col items-center justify-center h-full">
-                <span className={`text-[10px] font-medium ${
-                  day.isToday ? 'text-blue-600' : 'text-gray-500'
+                <span className={`text-sm font-bold ${
+                  day.isToday ? 'text-blue-600' : 'text-gray-700'
                 }`}>
                   {day.dayNum}
                 </span>
                 {entries.length > 1 && (
-                  <span className="text-[8px] text-gray-400">{entries.length}</span>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-20 gap-1 mt-1">
-        {days.slice(20, 40).map((day) => {
-          const entries = cashFlowData[day.date] || [];
-          const hasIncome = entries.some(e => e.type === 'income');
-          const hasExpense = entries.some(e => e.type === 'expense');
-          const hasBoth = hasIncome && hasExpense;
-
-          return (
-            <button
-              key={day.date}
-              onClick={() => handleDayClick(day.date)}
-              className={`w-full aspect-square rounded border transition-all hover:scale-110 ${
-                day.isToday
-                  ? 'border-blue-500 bg-blue-50'
-                  : hasBoth
-                  ? 'border-purple-500 bg-purple-50'
-                  : hasIncome
-                  ? 'border-green-500 bg-green-50'
-                  : hasExpense
-                  ? 'border-orange-500 bg-orange-50'
-                  : 'border-gray-200 bg-gray-50'
-              }`}
-              title={`${day.dayNum} - ${entries.length > 0 ? `${entries.length} işlem` : 'İşlem yok'}`}
-            >
-              <div className="flex flex-col items-center justify-center h-full">
-                <span className={`text-[10px] font-medium ${
-                  day.isToday ? 'text-blue-600' : 'text-gray-500'
-                }`}>
-                  {day.dayNum}
-                </span>
-                {entries.length > 1 && (
-                  <span className="text-[8px] text-gray-400">{entries.length}</span>
+                  <span className="text-[9px] text-gray-400 font-medium">{entries.length}</span>
                 )}
               </div>
             </button>
