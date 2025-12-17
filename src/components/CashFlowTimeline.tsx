@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, X, Edit2, Trash2, Plus } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, X, CreditCard as Edit2, Trash2, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
