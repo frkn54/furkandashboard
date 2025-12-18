@@ -6,11 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 interface KPICardsProps {
   startDate: string;
   endDate: string;
-  onStartDateChange: (date: string) => void;
-  onEndDateChange: (date: string) => void;
 }
 
-export default function KPICards({ startDate, endDate, onStartDateChange, onEndDateChange }: KPICardsProps) {
+export default function KPICards({ startDate, endDate }: KPICardsProps) {
   const [stats, setStats] = useState({
     totalSales: 0,
     netSales: 0,
@@ -58,15 +56,6 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
     });
   };
 
-  const handlePresetClick = (days: number) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - days);
-
-    onStartDateChange(start.toISOString().split('T')[0]);
-    onEndDateChange(end.toISOString().split('T')[0]);
-  };
-
   const cards = [
     {
       title: 'Toplam Satış',
@@ -83,11 +72,11 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
     {
       title: 'Sipariş Sayısı',
       value: stats.orderCount.toString(),
-      color: 'from-slate-500 to-slate-600',
+      color: 'from-purple-500 to-purple-600',
       icon: ShoppingCart,
     },
     {
-      title: 'İade Sayısı',
+      title: 'İade Oranı',
       value: `%${stats.returnRate.toFixed(1)}`,
       color: 'from-orange-500 to-orange-600',
       icon: TrendingDown,
@@ -95,63 +84,28 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
     {
       title: 'Gönderilecek Siparişler',
       value: stats.pendingShipments.toString(),
-      color: 'from-rose-500 to-rose-600',
+      color: 'from-red-500 to-red-600',
       icon: Truck,
     },
   ];
 
   return (
-    <div className="mb-3">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-gray-700 px-1">Temel Metrikler</h3>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-gray-400 text-xs">-</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="flex items-center gap-1 ml-2">
-            {[
-              { label: 'Bugün', days: 0 },
-              { label: '7 Gün', days: 7 },
-              { label: '30 Gün', days: 30 },
-            ].map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => handlePresetClick(preset.days)}
-                className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                {preset.label}
-              </button>
-            ))}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+      {cards.map((card, index) => (
+        <div
+          key={index}
+          className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-transform hover:scale-105"
+        >
+          <div className={`h-1.5 bg-gradient-to-r ${card.color}`}></div>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <card.icon className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">{card.value}</h3>
+            <p className="text-sm text-gray-500">{card.title}</p>
           </div>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-        {cards.map((card, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-transform hover:scale-105"
-          >
-            <div className={`h-1.5 bg-gradient-to-r ${card.color}`}></div>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <card.icon className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-1">{card.value}</h3>
-              <p className="text-sm text-gray-500">{card.title}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }

@@ -16,95 +16,43 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    id: 'product-management',
-    label: 'Ürün Yönetimi',
+    id: 'products',
+    label: 'Ürünler',
     icon: Package,
     subItems: [
-      { id: 'products', label: 'Ürünler' },
-      { id: 'products-stock', label: 'Stok Takibi' },
-      { id: 'products-feedback', label: 'Şikayet ve Öneri Kutusu' },
-      { id: 'products-target', label: 'Ürün Hedef Kitle ve Anahtar Kelime' },
-      { id: 'products-profit', label: 'Ürün Karlılık Analizi' },
+      { id: 'products-list', label: 'Ürünler sayfası' },
+      { id: 'products-stock', label: 'Stok sayısı' },
+      { id: 'products-barcode', label: 'Ürün barkot' },
+      { id: 'products-feedback', label: 'Şikayet ve öneri kutusu' },
+      { id: 'products-target', label: 'Ürün hedef kitle ve anahtar kelime' },
+      { id: 'products-profit', label: 'Ürün karlılık hesabı' },
     ],
   },
   {
-    id: 'order-management',
-    label: 'Sipariş Yönetimi',
+    id: 'orders',
+    label: 'Siparişler',
     icon: ShoppingCart,
     subItems: [
-      { id: 'orders', label: 'Siparişler' },
+      { id: 'orders-list', label: 'Siparişler' },
       { id: 'orders-returns', label: 'İadeler' },
-      { id: 'orders-favorites', label: 'Favorilenen Ürünler' },
-      { id: 'orders-abandoned', label: 'Terk Edilmiş Sepetler' },
-      { id: 'orders-followup', label: 'Sipariş Sonrası Arama Dönüşümü' },
+      { id: 'orders-favorites', label: 'Favorilenenler' },
+      { id: 'orders-abandoned', label: 'Terk edilmiş sepetler' },
+      { id: 'orders-followup', label: 'Sipariş sonrası arama dönüşüm' },
     ],
   },
   {
-    id: 'customer-crm',
-    label: 'Müşteri ve CRM',
+    id: 'customers',
+    label: 'Müşteriler',
     icon: Users,
     subItems: [
-      { id: 'customers', label: 'Müşteri Bilgileri' },
-      { id: 'customers-history', label: 'Satın Alma Geçmişi' },
-      { id: 'customers-analysis', label: 'Etkileşim ve Davranış Analizi' },
-      { id: 'customers-chat', label: 'Sohbet Geçmişi' },
+      { id: 'customers-info', label: 'Bilgiler' },
+      { id: 'customers-chat', label: 'Sohbet geçmişi' },
+      { id: 'customers-activity', label: 'Satın alma ve etkileşimleri' },
     ],
   },
   {
-    id: 'brand-management',
-    label: 'Marka Yönetimi',
-    icon: Award,
-    subItems: [
-      { id: 'brand-positioning', label: 'Marka Konumlandırma' },
-      { id: 'brand-identity', label: 'Marka Kimliği' },
-      { id: 'brand-awareness', label: 'Marka Bilinirliği' },
-      { id: 'brand-image', label: 'Marka İmajı' },
-      { id: 'brand-feedback', label: 'Öneri ve Şikayet Yönetimi' },
-      { id: 'brand-influencer', label: 'Influencer Oluşturma ve Yönetme' },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Pazarlama',
-    icon: Megaphone,
-    subItems: [
-      { id: 'marketing-discounts', label: 'İndirimler' },
-      { id: 'marketing-campaigns', label: 'Kampanyalar' },
-      { id: 'marketing-coupons', label: 'Kupon Yönetimi' },
-      { id: 'marketing-draws', label: 'Çekilişler' },
-      { id: 'marketing-contests', label: 'Yarışmalar' },
-      { id: 'marketing-giftcard', label: 'Hediye Kartları' },
-      { id: 'marketing-sms', label: 'Toplu SMS Gönderimi' },
-      { id: 'marketing-acquisition', label: 'Müşteri Kazanımı ve Arama Süreçleri' },
-    ],
-  },
-  {
-    id: 'advertising',
-    label: 'Reklam',
-    icon: TrendingUp,
-    subItems: [
-      { id: 'advertising-seo', label: 'SEO Genel Ayarlar' },
-      { id: 'advertising-keywords', label: 'Anahtar Kelime ve Performans' },
-      { id: 'advertising-target', label: 'Hedef Kitle' },
-      { id: 'advertising-competitors', label: 'Rakip Analizi' },
-    ],
-  },
-  {
-    id: 'sales-channels',
-    label: 'Satış Kanalları',
-    icon: Store,
-    subItems: [
-      { id: 'sales-all', label: 'Tüm Satış Kanalları Tek Panelde' },
-      { id: 'sales-website', label: 'Web Sitesi' },
-      { id: 'sales-trendyol', label: 'Trendyol' },
-      { id: 'sales-amazon', label: 'Amazon' },
-      { id: 'sales-etsy', label: 'Etsy' },
-      { id: 'sales-ozon', label: 'Ozon' },
-    ],
-  },
-  {
-    id: 'social-media',
-    label: 'Sosyal Medya Yönetimi',
+    id: 'social',
+    label: 'Sosyal Medya',
     icon: Share2,
     subItems: [
       { id: 'social-posts', label: 'Paylaşımlar' },
@@ -112,48 +60,93 @@ const menuItems: MenuItem[] = [
       { id: 'social-messages', label: 'Mesajlar' },
     ],
   },
+  { id: 'seo', label: 'SEO', icon: Search },
+  { id: 'advertising', label: 'Reklam', icon: TrendingUp },
   {
-    id: 'finance',
-    label: 'Finans',
-    icon: CreditCard,
+    id: 'sales',
+    label: 'Satış',
+    icon: DollarSign,
+  },
+  {
+    id: 'marketing',
+    label: 'Pazarlama',
+    icon: Megaphone,
     subItems: [
-      { id: 'finance-cashflow', label: 'Nakit Akışı' },
-      { id: 'finance-tracking', label: 'Gelir Gider Takibi' },
+      { id: 'marketing-contests', label: 'Yarışmalar' },
+      { id: 'marketing-giftcard', label: 'Hediye kartı' },
+      { id: 'marketing-sms', label: 'Toplu SMS atma' },
+      { id: 'marketing-call', label: 'Arama' },
     ],
   },
+  { id: 'discount', label: 'İndirim', icon: Tag },
+  {
+    id: 'campaigns',
+    label: 'Kampanyalar',
+    icon: Gift,
+    subItems: [
+      { id: 'campaigns-coupons', label: 'Kuponlar' },
+      { id: 'campaigns-draws', label: 'Çekilişler' },
+      { id: 'campaigns-methods', label: 'Kampanya yöntemleri' },
+    ],
+  },
+  { id: 'reports', label: 'Raporlar', icon: FileText },
+  {
+    id: 'brand',
+    label: 'Marka Yönetimi',
+    icon: Award,
+    subItems: [
+      { id: 'brand-positioning', label: 'Konumlandırma' },
+      { id: 'brand-identity', label: 'Marka kimliği' },
+      { id: 'brand-awareness', label: 'Marka bilinirliği' },
+      { id: 'brand-image', label: 'Marka imajı' },
+      { id: 'brand-feedback', label: 'Öneri ve şikayetler' },
+      { id: 'brand-packaging', label: 'Paketlemeler' },
+      { id: 'brand-influencer', label: 'Influencer yaratma' },
+    ],
+  },
+  {
+    id: 'marketplaces',
+    label: 'Pazar Yerleri',
+    icon: Store,
+    subItems: [
+      { id: 'marketplace-trendyol', label: 'Trendyol' },
+      { id: 'marketplace-n11', label: 'N11' },
+      { id: 'marketplace-hepsiburada', label: 'Hepsiburada' },
+      { id: 'marketplace-amazon', label: 'Amazon' },
+      { id: 'marketplace-etsy', label: 'Etsy' },
+      { id: 'marketplace-ozon', label: 'Ozon' },
+    ],
+  },
+  { id: 'sales-channels', label: 'Satış Kanalları', icon: TrendingUp },
+  { id: 'website', label: 'Web Site', icon: Globe },
+  { id: 'finance', label: 'Finans', icon: CreditCard },
   {
     id: 'accounting',
     label: 'Muhasebe',
     icon: Calculator,
     subItems: [
-      { id: 'accounting-invoices', label: 'Kesilen Faturalar' },
-      { id: 'accounting-taxes', label: 'Vergiler (3 Aylık / 6 Aylık / 1 Yıllık)' },
-      { id: 'accounting-income-tax', label: 'Gelir Vergisi' },
-      { id: 'accounting-budget', label: 'Şirket Bütçe Değeri' },
-      { id: 'accounting-vat', label: 'KDV ve Vergi Ödeme Bilgileri' },
-      { id: 'accounting-savings', label: 'Vergiden Kaçınma ve Tasarruf Önerileri' },
+      { id: 'accounting-invoices', label: 'Kesilen faturalar' },
+      { id: 'accounting-taxes', label: 'Vergiler' },
+      { id: 'accounting-income-tax', label: '3 aylık, 6 aylık, 1 yıllık gelir vergisi' },
+      { id: 'accounting-budget', label: 'Şirket bütçe değeri' },
+      { id: 'accounting-vat', label: 'KDV ve vergi ödeme bilgileri' },
+      { id: 'accounting-suggestions', label: 'Vergiden kaçınma önerileri alanı' },
     ],
   },
-  {
-    id: 'purchasing',
-    label: 'Satın Alma',
-    icon: ShoppingBag,
-    subItems: [
-      { id: 'purchasing-process', label: 'Satın Alma Süreçleri' },
-      { id: 'purchasing-suppliers', label: 'Tedarikçi Takibi' },
-    ],
-  },
-  { id: 'reports', label: 'Raporlar', icon: FileText },
+  { id: 'purchasing', label: 'Satın Alma', icon: ShoppingBag },
+  { id: 'cargo', label: 'Kargo', icon: Truck },
+  { id: 'payment-systems', label: 'Ödeme Sistemleri', icon: Wallet },
+  { id: 'export', label: 'İhracat', icon: Flag },
   { id: 'news', label: 'Haberler', icon: Newspaper },
+  { id: 'apps', label: 'Uygulamalar', icon: Globe },
+  { id: 'rnd', label: 'AR-GE', icon: Lightbulb },
+  { id: 'converter', label: 'WebP ve WebM Format Dönüştürücü', icon: FileImage },
   {
     id: 'settings',
     label: 'Ayarlar',
     icon: Settings,
     subItems: [
-      { id: 'settings-general', label: 'Genel Sistem Ayarları' },
-      { id: 'settings-api', label: 'API ve WebHook Bağlantıları' },
-      { id: 'settings-connections', label: 'Bağlantılar' },
-      { id: 'settings-converter', label: 'WebP ve WebM Format Dönüşümü' },
+      { id: 'settings-profile', label: 'Profilim' },
     ],
   },
 ];
@@ -172,9 +165,6 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
 
   useEffect(() => {
     setIsCollapsed(shouldBeCollapsed);
-    if (shouldBeCollapsed) {
-      setExpandedItems([]);
-    }
   }, [activePage, shouldBeCollapsed]);
 
   const toggleExpand = (itemId: string) => {
@@ -214,6 +204,24 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
         </button>
 
         <nav className="space-y-1">
+          <button
+            onClick={() => onPageChange('dashboard')}
+            className={`w-full flex items-center gap-3 rounded-xl transition-all mb-2 ${
+              isCollapsed ? 'justify-center px-2 py-3' : 'px-3 py-2.5'
+            } ${
+              activePage === 'dashboard'
+                ? 'bg-blue-500 text-white font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Home className={`flex-shrink-0 transition-all duration-300 ${
+              isCollapsed ? 'w-6 h-6' : 'w-4 h-4'
+            }`} />
+            <span className={`text-sm transition-opacity duration-300 whitespace-nowrap ${
+              isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+            }`}>Dashboard</span>
+          </button>
+
           {menuItems.map((item) => (
             <div key={item.id}>
               <button
