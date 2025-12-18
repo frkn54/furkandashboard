@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { TrendingUp, Users, ShoppingBag, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateSalesData, generateReturnsData, getRandomProducts } from '../lib/mockData';
@@ -9,12 +9,46 @@ interface DashboardWidgetsProps {
   endDate: string;
 }
 
+function generateBottomCardsData(startDate: string, endDate: string) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const seed = start.getDate() + end.getDate() + diffDays;
+  const multiplier = Math.max(0.5, diffDays / 7);
+
+  const onlineUsers = Math.floor(80 + (seed * 17) % 120 + Math.random() * 50);
+
+  const cartRate = (10 + (seed * 3) % 8 + Math.random() * 2).toFixed(1);
+  const checkoutRate = (6 + (seed * 2) % 5 + Math.random() * 1.5).toFixed(1);
+  const ctr = (2.5 + (seed % 4) + Math.random() * 1).toFixed(1);
+
+  const google = 35 + (seed * 2) % 20;
+  const social = 20 + (seed * 3) % 15;
+  const organic = 10 + (seed % 10);
+  const ads = 100 - google - social - organic;
+  const totalTraffic = google + social + organic + ads;
+
+  return {
+    onlineUsers,
+    conversion: { cartRate, checkoutRate, ctr },
+    traffic: {
+      google: Math.round((google / totalTraffic) * 100),
+      social: Math.round((social / totalTraffic) * 100),
+      organic: Math.round((organic / totalTraffic) * 100),
+      ads: Math.round((ads / totalTraffic) * 100),
+    },
+  };
+}
+
 export default function DashboardWidgets({ startDate, endDate }: DashboardWidgetsProps) {
   const [salesData, setSalesData] = useState<{ date: string; amount: number }[]>([]);
   const [returnsData, setReturnsData] = useState<{ date: string; amount: number }[]>([]);
   const [topProducts, setTopProducts] = useState<{ name: string; sales: number; image_url: string }[]>([]);
   const [graphView, setGraphView] = useState<'sales' | 'returns' | 'both'>('sales');
   const { user } = useAuth();
+
+  const bottomCardsData = useMemo(() => generateBottomCardsData(startDate, endDate), [startDate, endDate]);
 
   useEffect(() => {
     if (user) {
@@ -236,87 +270,76 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-4 text-white">
-        <Eye className="w-5 h-5 mb-2 opacity-80" />
-        <h3 className="text-3xl font-bold mb-1">132</h3>
-        <p className="text-blue-100 text-xs">Son 5 dakikadaki aktif ziyaretçi</p>
+      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-3 text-white flex items-center gap-3">
+        <div className="bg-white/20 rounded-lg p-2">
+          <Eye className="w-4 h-4" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold">{bottomCardsData.onlineUsers}</h3>
+          <p className="text-blue-100 text-[10px]">Aktif ziyaretçi</p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Dönüşüm İstatistikleri</h3>
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Sepete Ekleme</span>
-            <span className="text-xs font-semibold text-green-600">%12.4</span>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <h3 className="text-xs font-semibold text-gray-900 mb-2">Dönüşüm</h3>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-center flex-1">
+            <span className="text-sm font-bold text-green-600">%{bottomCardsData.conversion.cartRate}</span>
+            <p className="text-[9px] text-gray-500">Sepet</p>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Ödeme Tamamlama</span>
-            <span className="text-xs font-semibold text-green-600">%8.2</span>
+          <div className="w-px h-6 bg-gray-200"></div>
+          <div className="text-center flex-1">
+            <span className="text-sm font-bold text-green-600">%{bottomCardsData.conversion.checkoutRate}</span>
+            <p className="text-[9px] text-gray-500">Ödeme</p>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">CTR</span>
-            <span className="text-xs font-semibold text-blue-600">%3.7</span>
+          <div className="w-px h-6 bg-gray-200"></div>
+          <div className="text-center flex-1">
+            <span className="text-sm font-bold text-blue-600">%{bottomCardsData.conversion.ctr}</span>
+            <p className="text-[9px] text-gray-500">CTR</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Trafik Kaynakları</h3>
-        <div className="flex items-center justify-center mb-3">
-          <div className="relative w-20 h-20">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 grid grid-cols-2 gap-x-3 gap-y-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+              <span className="text-[10px] text-gray-600">Google</span>
+              <span className="text-[10px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.google}%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-rose-500 rounded-full flex-shrink-0"></div>
+              <span className="text-[10px] text-gray-600">Sosyal</span>
+              <span className="text-[10px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.social}%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+              <span className="text-[10px] text-gray-600">Organik</span>
+              <span className="text-[10px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.organic}%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
+              <span className="text-[10px] text-gray-600">Reklam</span>
+              <span className="text-[10px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.ads}%</span>
+            </div>
+          </div>
+          <div className="relative w-14 h-14 flex-shrink-0">
             <svg className="w-full h-full transform -rotate-90">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="#E5E7EB" strokeWidth="6" />
               <circle
-                cx="40"
-                cy="40"
-                r="32"
-                fill="none"
-                stroke="#E5E7EB"
-                strokeWidth="10"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
+                cx="28"
+                cy="28"
+                r="22"
                 fill="none"
                 stroke="#3B82F6"
-                strokeWidth="10"
-                strokeDasharray="201.06"
-                strokeDashoffset="50.27"
+                strokeWidth="6"
+                strokeDasharray={`${(bottomCardsData.traffic.google / 100) * 138.23} 138.23`}
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold text-gray-900">75%</span>
+              <span className="text-xs font-bold text-gray-900">{bottomCardsData.traffic.google}%</span>
             </div>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-600">Google</span>
-            </div>
-            <span className="font-semibold text-gray-900">45%</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-gray-600">Sosyal Medya</span>
-            </div>
-            <span className="font-semibold text-gray-900">30%</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">Organik</span>
-            </div>
-            <span className="font-semibold text-gray-900">15%</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <span className="text-gray-600">Reklam</span>
-            </div>
-            <span className="font-semibold text-gray-900">10%</span>
           </div>
         </div>
       </div>

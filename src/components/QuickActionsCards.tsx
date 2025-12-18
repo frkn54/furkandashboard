@@ -75,7 +75,6 @@ export default function QuickActionsCards({ onNewProduct, onPageChange }: QuickA
 
   return (
     <div className="mb-3">
-      <h3 className="text-sm font-bold text-gray-700 mb-3 px-1">Sık Kullanılanlar</h3>
       <div className="flex gap-2">
         {actions.map((action) => (
           <button
