@@ -214,7 +214,7 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
           </div>
         </button>
 
-        <nav className="space-y-0.5 mt-2">
+        <nav className="space-y-1 mt-3">
           {menuItems.map((item) => (
             <div key={item.id}>
               <button
@@ -226,37 +226,37 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
                   }
                 }}
                 className={`w-full flex items-center justify-between rounded-lg transition-all ${
-                  isCollapsed ? 'justify-center px-2 py-2' : 'px-2 py-1.5'
+                  isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'
                 } ${
                   activePage === item.id
                     ? 'bg-blue-500 text-white font-medium'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
+                <div className={`flex items-center gap-2.5 ${isCollapsed ? 'justify-center' : ''}`}>
                   <item.icon className={`flex-shrink-0 transition-all duration-300 ${
-                    isCollapsed ? 'w-5 h-5' : 'w-3.5 h-3.5'
+                    isCollapsed ? 'w-5 h-5' : 'w-4 h-4'
                   }`} />
-                  <span className={`text-xs transition-opacity duration-300 whitespace-nowrap ${
+                  <span className={`text-[13px] transition-opacity duration-300 whitespace-nowrap ${
                     isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
                   }`}>{item.label}</span>
                 </div>
                 {item.subItems && !isCollapsed && (
                   expandedItems.includes(item.id) ? (
-                    <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                    <ChevronDown className="w-4 h-4 flex-shrink-0" />
                   ) : (
-                    <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                    <ChevronRight className="w-4 h-4 flex-shrink-0" />
                   )
                 )}
               </button>
 
               {item.subItems && expandedItems.includes(item.id) && (
-                <div className="ml-3 mt-0.5 space-y-0.5">
+                <div className="ml-4 mt-1 space-y-0.5">
                   {item.subItems.map((subItem) => (
                     <button
                       key={subItem.id}
                       onClick={() => onPageChange(subItem.id)}
-                      className={`w-full text-left px-2 py-1 rounded-md text-[11px] transition-all ${
+                      className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-all ${
                         activePage === subItem.id
                           ? 'bg-blue-50 text-blue-600 font-medium'
                           : 'text-gray-600 hover:bg-gray-100'
@@ -271,7 +271,7 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
           ))}
         </nav>
 
-        <div className={`mt-3 pt-2 border-t border-gray-200 transition-all duration-300 ${isCollapsed ? 'px-1' : 'px-0'}`}>
+        <div className={`mt-4 pt-3 border-t border-gray-200 transition-all duration-300 ${isCollapsed ? 'px-1' : 'px-0'}`}>
           <button
             onClick={async () => {
               try {
@@ -280,14 +280,14 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
                 console.error('Logout error:', error);
               }
             }}
-            className={`w-full flex items-center gap-2 rounded-lg transition-all text-red-600 hover:bg-red-50 ${
-              isCollapsed ? 'justify-center px-2 py-2' : 'px-2 py-1.5'
+            className={`w-full flex items-center gap-2.5 rounded-lg transition-all text-red-600 hover:bg-red-50 ${
+              isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'
             }`}
           >
             <LogOut className={`flex-shrink-0 transition-all duration-300 ${
-              isCollapsed ? 'w-5 h-5' : 'w-3.5 h-3.5'
+              isCollapsed ? 'w-5 h-5' : 'w-4 h-4'
             }`} />
-            <span className={`text-xs font-medium transition-opacity duration-300 whitespace-nowrap ${
+            <span className={`text-[13px] font-medium transition-opacity duration-300 whitespace-nowrap ${
               isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
             }`}>Cikis Yap</span>
           </button>

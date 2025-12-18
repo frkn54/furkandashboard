@@ -74,7 +74,7 @@ export default function QuickActionsCards({ onNewProduct, onPageChange }: QuickA
   ];
 
   return (
-    <div className="mb-[5px] h-[90px]">
+    <div className="h-[90px]">
       <div className="flex gap-[5px] h-full">
         {actions.map((action) => (
           <button

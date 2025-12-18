@@ -129,7 +129,7 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
   ];
 
   return (
-    <div className="mb-[5px] h-[90px]">
+    <div className="h-[90px]">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-[10px] font-bold text-gray-700">Temel Metrikler</h3>
         <div className="flex items-center gap-1.5">

@@ -100,18 +100,18 @@ export default function ChatBot() {
   };
 
   return (
-    <div className="mt-[5px] mb-[20px]">
+    <div className="mb-[20px]">
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-full h-[50px] bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl shadow-sm flex items-center justify-center gap-2 text-white transition-all"
+          className="w-full h-[50px] bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 rounded-xl shadow-sm flex items-center justify-center gap-2 text-white transition-all"
         >
           <MessageCircle className="w-5 h-5" />
           <span className="font-semibold text-sm">Kisisel Asistan</span>
         </button>
       ) : (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" style={{ height: '365px' }}>
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-white" />
               <span className="font-semibold text-white text-sm">Kisisel Asistan</span>
@@ -139,9 +139,9 @@ export default function ChatBot() {
           </div>
 
           {isOnCall && (
-            <div className="bg-green-50 border-b border-green-200 px-4 py-2 flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-700 text-xs font-medium">Sesli gorusme aktif - Konusabilirsiniz</span>
+            <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-2 flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-emerald-700 text-xs font-medium">Sesli gorusme aktif - Konusabilirsiniz</span>
             </div>
           )}
 
@@ -154,7 +154,7 @@ export default function ChatBot() {
                 <div
                   className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${
                     message.sender === 'user'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-emerald-500 text-white'
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
@@ -182,12 +182,12 @@ export default function ChatBot() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Mesajinizi yazin..."
-              className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <button
               onClick={handleSend}
               disabled={!inputValue.trim()}
-              className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
             </button>

@@ -37,7 +37,7 @@ export default function DashboardHome({ onNewProduct, onPageChange }: DashboardH
   }, [endDate]);
 
   return (
-    <div>
+    <div className="flex flex-col gap-[5px]">
       <CashFlowTimeline onPageChange={onPageChange} />
       <QuickActionsCards onNewProduct={onNewProduct} onPageChange={onPageChange} />
       <KPICards

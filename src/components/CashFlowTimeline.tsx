@@ -15,6 +15,16 @@ interface CashFlowTimelineProps {
   onPageChange?: (page: string) => void;
 }
 
+interface EconomicData {
+  usdTry: string;
+  goldOz: string;
+  btcUsd: string;
+  silverOz: string;
+  interestRate: string;
+  inflation: string;
+  bist100: string;
+}
+
 export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps = {}) {
   const [showModal, setShowModal] = useState(false);
   const [showEntriesModal, setShowEntriesModal] = useState(false);
@@ -24,7 +34,43 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
   const [modalNote, setModalNote] = useState('');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [cashFlowData, setCashFlowData] = useState<Record<string, CashFlowEntry[]>>({});
+  const [economicData, setEconomicData] = useState<EconomicData>({
+    usdTry: '34.85',
+    goldOz: '2,648',
+    btcUsd: '106,420',
+    silverOz: '30.52',
+    interestRate: '%50',
+    inflation: '%47.1',
+    bist100: '289',
+  });
   const { user } = useAuth();
+
+  useEffect(() => {
+    fetchEconomicData();
+  }, []);
+
+  const fetchEconomicData = async () => {
+    try {
+      const [forexRes, cryptoRes] = await Promise.all([
+        fetch('https://api.exchangerate-api.com/v4/latest/USD'),
+        fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'),
+      ]);
+
+      if (forexRes.ok) {
+        const forexData = await forexRes.json();
+        const usdTry = forexData.rates?.TRY?.toFixed(2) || '34.85';
+        setEconomicData(prev => ({ ...prev, usdTry }));
+      }
+
+      if (cryptoRes.ok) {
+        const cryptoData = await cryptoRes.json();
+        const btcUsd = cryptoData.bitcoin?.usd?.toLocaleString('en-US') || '106,420';
+        setEconomicData(prev => ({ ...prev, btcUsd }));
+      }
+    } catch (error) {
+      console.log('Economic data fetch error, using defaults');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -212,7 +258,7 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
   const days = generate35Days();
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 mb-[5px] h-[90px]">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 h-[90px]">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <button
@@ -227,23 +273,15 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
           <span className="text-[10px] font-bold text-gray-900">
             {getCurrentMonthName()}
           </span>
-        </div>
-        <div className="flex items-center gap-2 text-[9px]">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600">Giris</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span className="text-gray-600">Cikis</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-gray-600">Ikisi</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-            <span className="text-gray-600">Yok</span>
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          <div className="flex items-center gap-3 text-[10px]">
+            <span className="text-gray-600">USD/TRY: <span className="font-semibold text-gray-900">{economicData.usdTry}</span></span>
+            <span className="text-gray-600">Altin: <span className="font-semibold text-gray-900">${economicData.goldOz}</span></span>
+            <span className="text-gray-600">BTC: <span className="font-semibold text-gray-900">${economicData.btcUsd}</span></span>
+            <span className="text-gray-600">Gumus: <span className="font-semibold text-gray-900">${economicData.silverOz}</span></span>
+            <span className="text-gray-600">Faiz: <span className="font-semibold text-gray-900">{economicData.interestRate}</span></span>
+            <span className="text-gray-600">Enf: <span className="font-semibold text-gray-900">{economicData.inflation}</span></span>
+            <span className="text-gray-600">BIST: <span className="font-semibold text-gray-900">${economicData.bist100}</span></span>
           </div>
         </div>
       </div>
