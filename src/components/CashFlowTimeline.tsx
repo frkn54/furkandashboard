@@ -212,43 +212,43 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
   const days = generate35Days();
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-3">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 mb-[5px] h-[90px]">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => onPageChange?.('finance-cashflow')}
-            className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium border border-gray-200"
+            className="px-2 py-1 text-[10px] text-gray-600 hover:bg-gray-100 rounded-md transition-colors font-medium border border-gray-200"
           >
-            Tüm Zamanlar
+            Tum Zamanlar
           </button>
-          <span className="text-sm font-semibold text-gray-700">
+          <span className="text-[10px] font-semibold text-gray-700">
             {getCurrentQuarterInfo()}
           </span>
-          <span className="text-sm font-bold text-gray-900">
+          <span className="text-[10px] font-bold text-gray-900">
             {getCurrentMonthName()}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600">Para Girişi</span>
+        <div className="flex items-center gap-2 text-[9px]">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-gray-600">Giris</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div>
-            <span className="text-gray-600">Para Çıkışı</span>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <span className="text-gray-600">Cikis</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
-            <span className="text-gray-600">Her İkisi</span>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-gray-600">Ikisi</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
-            <span className="text-gray-600">İşlem Yok</span>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+            <span className="text-gray-600">Yok</span>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-1 h-[42px]">
         {days.map((day) => {
           const entries = cashFlowData[day.date] || [];
           const hasIncome = entries.some(e => e.type === 'income');
@@ -259,9 +259,9 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
             <button
               key={day.date}
               onClick={() => handleDayClick(day.date)}
-              className={`flex-1 aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
+              className={`flex-1 rounded-md border transition-all hover:scale-105 ${
                 day.isToday
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
+                  ? 'border-blue-500 bg-blue-50 shadow-sm'
                   : hasBoth
                   ? 'border-blue-400 bg-blue-50'
                   : hasIncome
@@ -270,17 +270,14 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
                   ? 'border-orange-500 bg-orange-50'
                   : 'border-gray-200 bg-gray-50'
               }`}
-              title={`${day.dayNum} - ${entries.length > 0 ? `${entries.length} işlem` : 'İşlem yok'}`}
+              title={`${day.dayNum} - ${entries.length > 0 ? `${entries.length} islem` : 'Islem yok'}`}
             >
               <div className="flex flex-col items-center justify-center h-full">
-                <span className={`text-sm font-bold ${
+                <span className={`text-[10px] font-bold ${
                   day.isToday ? 'text-blue-600' : 'text-gray-700'
                 }`}>
                   {day.dayNum}
                 </span>
-                {entries.length > 1 && (
-                  <span className="text-[9px] text-gray-400 font-medium">{entries.length}</span>
-                )}
               </div>
             </button>
           );

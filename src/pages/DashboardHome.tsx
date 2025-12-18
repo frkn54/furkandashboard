@@ -3,6 +3,7 @@ import CashFlowTimeline from '../components/CashFlowTimeline';
 import QuickActionsCards from '../components/QuickActionsCards';
 import KPICards from '../components/KPICards';
 import DashboardWidgets from '../components/DashboardWidgets';
+import ChatBot from '../components/ChatBot';
 
 const STORAGE_KEY_START_DATE = 'dashboard_start_date';
 const STORAGE_KEY_END_DATE = 'dashboard_end_date';
@@ -46,6 +47,7 @@ export default function DashboardHome({ onNewProduct, onPageChange }: DashboardH
         onEndDateChange={setEndDate}
       />
       <DashboardWidgets startDate={startDate} endDate={endDate} />
+      <ChatBot />
     </div>
   );
 }

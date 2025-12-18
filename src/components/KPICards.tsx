@@ -129,33 +129,33 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
   ];
 
   return (
-    <div className="mb-3">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-gray-700 px-1">Temel Metrikler</h3>
-        <div className="flex items-center gap-2">
+    <div className="mb-[5px] h-[90px]">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-[10px] font-bold text-gray-700">Temel Metrikler</h3>
+        <div className="flex items-center gap-1.5">
           <input
             type="date"
             value={startDate}
             onChange={(e) => onStartDateChange(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <span className="text-gray-400 text-xs">-</span>
+          <span className="text-gray-400 text-[10px]">-</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => onEndDateChange(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <div className="flex items-center gap-1 ml-2">
+          <div className="flex items-center gap-0.5 ml-1">
             {[
-              { label: 'Bugün', days: 0 },
-              { label: '7 Gün', days: 7 },
-              { label: '30 Gün', days: 30 },
+              { label: 'Bugun', days: 0 },
+              { label: '7G', days: 7 },
+              { label: '30G', days: 30 },
             ].map((preset) => (
               <button
                 key={preset.label}
                 onClick={() => handlePresetClick(preset.days)}
-                className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-1.5 py-0.5 text-[10px] text-gray-600 hover:bg-gray-100 rounded transition-colors"
               >
                 {preset.label}
               </button>
@@ -163,18 +163,18 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-[5px] h-[70px]">
         {cards.map((card, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex items-center gap-3 transition-transform hover:scale-[1.02]"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex items-center gap-2 transition-transform hover:scale-[1.02]"
           >
-            <div className={`w-9 h-9 ${card.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-              <card.icon className="w-4 h-4 text-white" />
+            <div className={`w-8 h-8 ${card.color} rounded-md flex items-center justify-center flex-shrink-0`}>
+              <card.icon className="w-3.5 h-3.5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-500 truncate">{card.title}</p>
-              <h3 className="text-lg font-bold text-gray-900 truncate">{card.value}</h3>
+              <p className="text-[9px] text-gray-500 truncate">{card.title}</p>
+              <h3 className="text-sm font-bold text-gray-900 truncate">{card.value}</h3>
             </div>
           </div>
         ))}
