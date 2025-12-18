@@ -74,19 +74,20 @@ export default function QuickActionsCards({ onNewProduct, onPageChange }: QuickA
   ];
 
   return (
-    <div className="h-[90px]">
-      <div className="flex gap-[5px] h-full">
+    <div className="mb-3">
+      <h3 className="text-sm font-bold text-gray-700 mb-3 px-1">Sık Kullanılanlar</h3>
+      <div className="flex gap-2">
         {actions.map((action) => (
           <button
             key={action.id}
             onClick={action.onClick}
-            className={`flex-1 bg-gradient-to-br ${action.gradient} ${action.hoverGradient} text-white rounded-xl p-2 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md`}
+            className={`flex-1 bg-gradient-to-br ${action.gradient} ${action.hoverGradient} text-white rounded-xl p-4 shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md`}
           >
-            <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-              <div className="bg-white bg-opacity-20 rounded-lg p-2">
-                <action.icon className="w-4 h-4" />
+            <div className="flex flex-col items-center gap-2 h-full">
+              <div className="bg-white bg-opacity-20 rounded-lg p-2.5">
+                <action.icon className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-semibold text-center leading-tight">
+              <span className="text-xs font-semibold text-center leading-tight">
                 {action.label}
               </span>
             </div>
@@ -95,14 +96,14 @@ export default function QuickActionsCards({ onNewProduct, onPageChange }: QuickA
 
         <button
           onClick={() => onPageChange?.('notifications')}
-          className="w-[60px] flex-shrink-0 bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl p-2 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
+          className="w-20 bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl p-4 shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md"
         >
-          <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-            <div className="bg-white bg-opacity-20 rounded-lg p-1.5">
-              <Bell className="w-3.5 h-3.5" />
+          <div className="flex flex-col items-center gap-2 h-full justify-center">
+            <div className="bg-white bg-opacity-20 rounded-lg p-2">
+              <Bell className="w-4 h-4" />
             </div>
-            <span className="text-[9px] font-semibold text-center leading-tight">
-              Bildirim
+            <span className="text-[10px] font-semibold text-center leading-tight">
+              Bildirimler
             </span>
           </div>
         </button>

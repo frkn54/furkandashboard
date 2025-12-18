@@ -98,22 +98,10 @@ export function generateReturnsData(days: number = 7) {
   return data;
 }
 
-const productImages = [
-  'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop',
-];
-
 export function getRandomProducts(count: number = 5) {
   const shuffled = [...womensFashionProducts].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count).map((name, index) => ({
     name,
     sales: Math.floor(Math.random() * 80) + 40,
-    image_url: productImages[index % productImages.length],
   }));
 }

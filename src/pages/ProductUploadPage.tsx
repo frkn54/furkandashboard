@@ -875,218 +875,106 @@ export default function ProductUploadPage() {
 
   return (
     <div className="max-w-full px-8 py-6">
-      {/* First Row: Reference Image (1/3) + Product Info (2/3) */}
-      <div className="grid grid-cols-3 gap-6 mb-6">
-        {/* Reference Image Section - 1/3 width */}
-        <div className="col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-blue-600" />
-            Ürün Referans Görseli
-          </h3>
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* LEFT COLUMN */}
+        <div className="space-y-6">
+          {/* Reference Image Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-600" />
+              Ürün Referans Görseli
+            </h3>
 
-          <div className="space-y-3">
-            {referenceImages.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {referenceImages.map((img) => (
-                  <div key={img.id} className="relative group">
-                    <img
-                      src={img.url}
-                      alt="Reference"
-                      className={`w-full h-32 object-cover rounded-lg border-2 ${img.isPrimary ? 'border-blue-500' : 'border-gray-200'}`}
-                    />
-                    <div className="absolute top-1 right-1 flex gap-1">
-                      {!img.isPrimary && (
+            <div className="space-y-3">
+              {referenceImages.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {referenceImages.map((img) => (
+                    <div key={img.id} className="relative group">
+                      <img
+                        src={img.url}
+                        alt="Reference"
+                        className={`w-full h-32 object-cover rounded-lg border-2 ${img.isPrimary ? 'border-blue-500' : 'border-gray-200'}`}
+                      />
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        {!img.isPrimary && (
+                          <button
+                            onClick={() => setPrimaryImage(img.id)}
+                            className="bg-white rounded p-1 shadow text-xs"
+                            title="Ana görsel yap"
+                          >
+                            ⭐
+                          </button>
+                        )}
                         <button
-                          onClick={() => setPrimaryImage(img.id)}
-                          className="bg-white rounded p-1 shadow text-xs"
-                          title="Ana görsel yap"
+                          onClick={() => removeReferenceImage(img.id)}
+                          className="bg-red-500 text-white rounded p-1 shadow"
                         >
-                          *
+                          <X className="w-3 h-3" />
                         </button>
+                      </div>
+                      {img.isPrimary && (
+                        <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">
+                          Ana
+                        </span>
                       )}
-                      <button
-                        onClick={() => removeReferenceImage(img.id)}
-                        className="bg-red-500 text-white rounded p-1 shadow"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
                     </div>
-                    {img.isPrimary && (
-                      <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">
-                        Ana
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
-                <div className="text-center p-4">
-                  <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-500">Ürün görseli</p>
+                  ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500">Ürün görseli</p>
+                  </div>
+                </div>
+              )}
 
-            <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={startCamera}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  Kamera
+                </button>
+                <button
+                  onClick={handleGalleryClick}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors border border-gray-200"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Galeri
+                </button>
+              </div>
+
               <button
-                onClick={startCamera}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                onClick={handleAdditionalImagesClick}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors border border-gray-200 text-sm"
               >
-                <Camera className="w-4 h-4" />
-                Kamera
+                <span>+ Görsel</span>
               </button>
-              <button
-                onClick={handleGalleryClick}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors border border-gray-200"
-              >
-                <ImageIcon className="w-4 h-4" />
-                Galeri
-              </button>
-            </div>
 
-            <button
-              onClick={handleAdditionalImagesClick}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors border border-gray-200 text-sm"
-            >
-              <span>+ Görsel</span>
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileChange}
-              accept="image/*"
-              multiple
-              className="hidden"
-            />
-            <input
-              ref={additionalImagesInputRef}
-              type="file"
-              onChange={handleFileChange}
-              accept="image/*"
-              multiple
-              className="hidden"
-            />
-          </div>
-        </div>
-
-        {/* Product Information Section - 2/3 width */}
-        <div className="col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Ürün Bilgileri</h3>
-
-          <div className="grid grid-cols-2 gap-6">
-            {/* Left Column: Ürün Kodu, Ürün Adı, Ürün Açıklaması */}
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Ürün Kodu <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={productCode}
-                  onChange={(e) => setProductCode(e.target.value)}
-                  placeholder="Örn: PRD-2024-001"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Ürün Adı <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                  placeholder="Ürün adını girin"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Ürün Açıklaması
-                </label>
-                <textarea
-                  value={productDescription}
-                  onChange={(e) => setProductDescription(e.target.value)}
-                  placeholder="Ürün özelliklerini, avantajlarını ve kullanım alanlarını açıklayın..."
-                  rows={5}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Right Column: Stok Adedi, Ürün Fiyatı, Ürün Linki, Referans Linki */}
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  <Package className="w-4 h-4 inline mr-1" />
-                  Stok Adedi <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={productStock}
-                  onChange={(e) => setProductStock(e.target.value)}
-                  placeholder="100"
-                  min="0"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  <DollarSign className="w-4 h-4 inline mr-1" />
-                  Ürün Fiyatı <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={productPrice}
-                  onChange={(e) => setProductPrice(e.target.value)}
-                  placeholder="129.99"
-                  step="0.01"
-                  min="0"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  <LinkIcon className="w-4 h-4 inline mr-1" />
-                  Ürünün Linki
-                </label>
-                <input
-                  type="url"
-                  value={productUrl}
-                  onChange={(e) => setProductUrl(e.target.value)}
-                  placeholder="https://example.com/product"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  <LinkIcon className="w-4 h-4 inline mr-1" />
-                  Benzer (referans) ürünün linki
-                </label>
-                <input
-                  type="url"
-                  value={referenceProductUrl}
-                  onChange={(e) => setReferenceProductUrl(e.target.value)}
-                  placeholder="https://example.com/similar-product"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
+              <input
+                ref={additionalImagesInputRef}
+                type="file"
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Second Row: Visual Creation (1/2) + Video Creation (1/2) */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        {/* Visual Creation Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          {/* Visual Creation Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-purple-600" />
@@ -1343,10 +1231,120 @@ export default function ProductUploadPage() {
                 </div>
               );
             })}
+          </div>
         </div>
 
-        {/* Video Creation Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        {/* RIGHT COLUMN */}
+        <div className="space-y-6">
+          {/* Product Information Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Ürün Bilgileri</h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Ürün Kodu <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={productCode}
+                  onChange={(e) => setProductCode(e.target.value)}
+                  placeholder="Örn: PRD-2024-001"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Ürün Adı <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="Ürün adını girin"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Ürün Açıklaması
+                </label>
+                <textarea
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="Ürün özelliklerini, avantajlarını ve kullanım alanlarını açıklayın..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <Package className="w-4 h-4 inline mr-1" />
+                    Stok Adedi <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={productStock}
+                    onChange={(e) => setProductStock(e.target.value)}
+                    placeholder="100"
+                    min="0"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Ürün Fiyatı <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={productPrice}
+                    onChange={(e) => setProductPrice(e.target.value)}
+                    placeholder="129.99"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <LinkIcon className="w-4 h-4 inline mr-1" />
+                  Ürünün Linki
+                </label>
+                <input
+                  type="url"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  placeholder="https://example.com/product"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <LinkIcon className="w-4 h-4 inline mr-1" />
+                  Benzer (referans) ürünün linki
+                </label>
+                <input
+                  type="url"
+                  value={referenceProductUrl}
+                  onChange={(e) => setReferenceProductUrl(e.target.value)}
+                  placeholder="https://example.com/similar-product"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Video Creation Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <Video className="w-5 h-5 text-red-600" />
@@ -1667,6 +1665,7 @@ export default function ProductUploadPage() {
                 </div>
               );
             })}
+          </div>
         </div>
       </div>
 
