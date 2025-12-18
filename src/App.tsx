@@ -151,8 +151,8 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
-      <div className={`transition-all duration-300 ${activePage === 'dashboard' ? 'ml-64' : 'ml-20'}`}>
-        <main className="p-4">{renderPage()}</main>
+      <div className={`transition-all duration-300 ${activePage === 'dashboard' ? 'ml-[255px]' : 'ml-20'}`}>
+        <main className="p-[5px]">{renderPage()}</main>
       </div>
     </div>
   );

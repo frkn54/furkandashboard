@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { TrendingUp, Users, ShoppingBag, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateSalesData, generateReturnsData, getRandomProducts } from '../lib/mockData';
@@ -9,12 +9,46 @@ interface DashboardWidgetsProps {
   endDate: string;
 }
 
+function generateBottomCardsData(startDate: string, endDate: string) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const seed = start.getDate() + end.getDate() + diffDays;
+  const multiplier = Math.max(0.5, diffDays / 7);
+
+  const onlineUsers = Math.floor(80 + (seed * 17) % 120 + Math.random() * 50);
+
+  const cartRate = (10 + (seed * 3) % 8 + Math.random() * 2).toFixed(1);
+  const checkoutRate = (6 + (seed * 2) % 5 + Math.random() * 1.5).toFixed(1);
+  const ctr = (2.5 + (seed % 4) + Math.random() * 1).toFixed(1);
+
+  const google = 35 + (seed * 2) % 20;
+  const social = 20 + (seed * 3) % 15;
+  const organic = 10 + (seed % 10);
+  const ads = 100 - google - social - organic;
+  const totalTraffic = google + social + organic + ads;
+
+  return {
+    onlineUsers,
+    conversion: { cartRate, checkoutRate, ctr },
+    traffic: {
+      google: Math.round((google / totalTraffic) * 100),
+      social: Math.round((social / totalTraffic) * 100),
+      organic: Math.round((organic / totalTraffic) * 100),
+      ads: Math.round((ads / totalTraffic) * 100),
+    },
+  };
+}
+
 export default function DashboardWidgets({ startDate, endDate }: DashboardWidgetsProps) {
   const [salesData, setSalesData] = useState<{ date: string; amount: number }[]>([]);
   const [returnsData, setReturnsData] = useState<{ date: string; amount: number }[]>([]);
-  const [topProducts, setTopProducts] = useState<{ name: string; sales: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string; sales: number; image_url: string }[]>([]);
   const [graphView, setGraphView] = useState<'sales' | 'returns' | 'both'>('sales');
   const { user } = useAuth();
+
+  const bottomCardsData = useMemo(() => generateBottomCardsData(startDate, endDate), [startDate, endDate]);
 
   useEffect(() => {
     if (user) {
@@ -81,7 +115,7 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
 
     const { data: products } = await supabase
       .from('products')
-      .select('name')
+      .select('name, image_url')
       .eq('user_id', user.id)
       .limit(5);
 
@@ -90,6 +124,7 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
         products.map((p, i) => ({
           name: p.name,
           sales: Math.floor(Math.random() * 100) + 10,
+          image_url: p.image_url || 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=400&fit=crop',
         }))
       );
     } else {
@@ -114,200 +149,201 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
   const { primary, secondary } = getDataForView();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
-      <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-gray-900">Satış ve İade Grafiği</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setGraphView('sales')}
-              className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                graphView === 'sales'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              Satış
-            </button>
-            <button
-              onClick={() => setGraphView('returns')}
-              className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                graphView === 'returns'
-                  ? 'bg-orange-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              İadeler
-            </button>
-            <button
-              onClick={() => setGraphView('both')}
-              className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                graphView === 'both'
-                  ? 'bg-slate-700 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              Her İkisi
-            </button>
-          </div>
-        </div>
-
-        {graphView === 'both' && (
-          <div className="flex items-center gap-4 mb-4 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded"></div>
-              <span className="text-gray-600">Satış</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-500 rounded"></div>
-              <span className="text-gray-600">İadeler</span>
+    <div className="space-y-[5px]">
+      <div className="flex gap-[5px] h-[210px]">
+        <div className="flex-[2] bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[10px] font-semibold text-gray-900">Satis ve Iade Grafigi</h3>
+            <div className="flex gap-0.5">
+              <button
+                onClick={() => setGraphView('sales')}
+                className={`px-1.5 py-0.5 text-[9px] rounded font-medium transition-colors ${
+                  graphView === 'sales'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Satis
+              </button>
+              <button
+                onClick={() => setGraphView('returns')}
+                className={`px-1.5 py-0.5 text-[9px] rounded font-medium transition-colors ${
+                  graphView === 'returns'
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Iade
+              </button>
+              <button
+                onClick={() => setGraphView('both')}
+                className={`px-1.5 py-0.5 text-[9px] rounded font-medium transition-colors ${
+                  graphView === 'both'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Ikisi
+              </button>
             </div>
           </div>
-        )}
 
-        <div className="h-64 flex items-end gap-2">
-          {primary.length === 0 && secondary.length === 0 ? (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              Veri bulunmuyor
-            </div>
-          ) : (
-            primary.map((data, index) => {
-              const secondaryValue = secondary.find(s => s.date === data.date);
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full flex items-end gap-0.5">
-                    {graphView === 'both' ? (
-                      <>
-                        <div
-                          className="flex-1 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all hover:from-blue-600 hover:to-blue-500"
-                          style={{ height: `${(data.amount / maxValue) * 240}px` }}
-                        ></div>
-                        <div
-                          className="flex-1 bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg transition-all hover:from-orange-600 hover:to-orange-500"
-                          style={{ height: `${((secondaryValue?.amount || 0) / maxValue) * 240}px` }}
-                        ></div>
-                      </>
-                    ) : (
-                      <div
-                        className={`w-full rounded-t-lg transition-all ${
-                          graphView === 'sales'
-                            ? 'bg-gradient-to-t from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500'
-                            : 'bg-gradient-to-t from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500'
-                        }`}
-                        style={{ height: `${(data.amount / maxValue) * 240}px` }}
-                      ></div>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {new Date(data.date).getDate()}
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-6">En Çok Satan Ürünler</h3>
-        <div className="space-y-4">
-          {topProducts.length === 0 ? (
-            <p className="text-gray-400 text-sm">Henüz ürün bulunmuyor</p>
-          ) : (
-            topProducts.map((product, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-gray-400">#{index + 1}</span>
-                  <span className="text-sm text-gray-700">{product.name}</span>
-                </div>
-                <span className="text-sm font-medium text-blue-600">{product.sales}</span>
+          {graphView === 'both' && (
+            <div className="flex items-center gap-2 mb-1 text-[9px]">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded"></div>
+                <span className="text-gray-600">Satis</span>
               </div>
-            ))
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-orange-500 rounded"></div>
+                <span className="text-gray-600">Iade</span>
+              </div>
+            </div>
           )}
+
+          <div className="h-[155px] flex items-end gap-1">
+            {primary.length === 0 && secondary.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                Veri bulunmuyor
+              </div>
+            ) : (
+              primary.map((data, index) => {
+                const secondaryValue = secondary.find(s => s.date === data.date);
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className="w-full flex items-end gap-0.5 h-[140px]">
+                      {graphView === 'both' ? (
+                        <>
+                          <div
+                            className="flex-1 bg-blue-500 rounded-t transition-all hover:bg-blue-600"
+                            style={{ height: `${(data.amount / maxValue) * 130}px` }}
+                          ></div>
+                          <div
+                            className="flex-1 bg-orange-500 rounded-t transition-all hover:bg-orange-600"
+                            style={{ height: `${((secondaryValue?.amount || 0) / maxValue) * 130}px` }}
+                          ></div>
+                        </>
+                      ) : (
+                        <div
+                          className={`w-full rounded-t transition-all ${
+                            graphView === 'sales'
+                              ? 'bg-blue-500 hover:bg-blue-600'
+                              : 'bg-orange-500 hover:bg-orange-600'
+                          }`}
+                          style={{ height: `${(data.amount / maxValue) * 130}px` }}
+                        ></div>
+                      )}
+                    </div>
+                    <span className="text-[8px] text-gray-500">
+                      {new Date(data.date).getDate()}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+          <h3 className="text-[10px] font-semibold text-gray-900 mb-2">En Cok Satan Urunler</h3>
+          <div className="space-y-1.5">
+            {topProducts.length === 0 ? (
+              <p className="text-gray-400 text-[10px]">Henuz urun yok</p>
+            ) : (
+              topProducts.map((product, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-semibold text-gray-400">#{index + 1}</span>
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-6 h-6 rounded object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=400&fit=crop';
+                      }}
+                    />
+                    <span className="text-[9px] text-gray-700 truncate max-w-[80px]">{product.name}</span>
+                  </div>
+                  <span className="text-[9px] font-semibold text-blue-600">{product.sales}</span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-sm p-6 text-white">
-        <Eye className="w-8 h-8 mb-4 opacity-80" />
-        <h3 className="text-4xl font-bold mb-2">132</h3>
-        <p className="text-blue-100 text-sm">Son 5 dakikadaki aktif ziyaretçi</p>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-6">Dönüşüm İstatistikleri</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Sepete Ekleme</span>
-            <span className="text-sm font-bold text-green-600">%12.4</span>
+      <div className="grid grid-cols-3 gap-[5px] h-[90px]">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-3 text-white flex items-center gap-3">
+          <div className="bg-white/20 rounded-lg p-2">
+            <Eye className="w-4 h-4" />
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Ödeme Tamamlama</span>
-            <span className="text-sm font-bold text-green-600">%8.2</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">CTR</span>
-            <span className="text-sm font-bold text-blue-600">%3.7</span>
+          <div>
+            <h3 className="text-xl font-bold">{bottomCardsData.onlineUsers}</h3>
+            <p className="text-blue-100 text-[10px]">Aktif ziyaretci</p>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-6">Trafik Kaynakları</h3>
-        <div className="flex items-center justify-center mb-4">
-          <div className="relative w-32 h-32">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle
-                cx="64"
-                cy="64"
-                r="56"
-                fill="none"
-                stroke="#E5E7EB"
-                strokeWidth="16"
-              />
-              <circle
-                cx="64"
-                cy="64"
-                r="56"
-                fill="none"
-                stroke="#3B82F6"
-                strokeWidth="16"
-                strokeDasharray="351.86"
-                strokeDashoffset="87.96"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-gray-900">75%</span>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col justify-center">
+          <h3 className="text-[9px] font-semibold text-gray-900 mb-1.5">Donusum</h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-center flex-1">
+              <span className="text-sm font-bold text-green-600">%{bottomCardsData.conversion.cartRate}</span>
+              <p className="text-[8px] text-gray-500">Sepet</p>
+            </div>
+            <div className="w-px h-5 bg-gray-200"></div>
+            <div className="text-center flex-1">
+              <span className="text-sm font-bold text-green-600">%{bottomCardsData.conversion.checkoutRate}</span>
+              <p className="text-[8px] text-gray-500">Odeme</p>
+            </div>
+            <div className="w-px h-5 bg-gray-200"></div>
+            <div className="text-center flex-1">
+              <span className="text-sm font-bold text-blue-600">%{bottomCardsData.conversion.ctr}</span>
+              <p className="text-[8px] text-gray-500">CTR</p>
             </div>
           </div>
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-600">Google</span>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+          <div className="flex items-center gap-2 h-full">
+            <div className="flex-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <span className="text-[8px] text-gray-600">Google</span>
+                <span className="text-[8px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.google}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full flex-shrink-0"></div>
+                <span className="text-[8px] text-gray-600">Sosyal</span>
+                <span className="text-[8px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.social}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>
+                <span className="text-[8px] text-gray-600">Organik</span>
+                <span className="text-[8px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.organic}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full flex-shrink-0"></div>
+                <span className="text-[8px] text-gray-600">Reklam</span>
+                <span className="text-[8px] font-semibold text-gray-900 ml-auto">{bottomCardsData.traffic.ads}%</span>
+              </div>
             </div>
-            <span className="font-medium text-gray-900">45%</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-              <span className="text-gray-600">Sosyal Medya</span>
+            <div className="relative w-12 h-12 flex-shrink-0">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="24" cy="24" r="18" fill="none" stroke="#E5E7EB" strokeWidth="5" />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  fill="none"
+                  stroke="#3B82F6"
+                  strokeWidth="5"
+                  strokeDasharray={`${(bottomCardsData.traffic.google / 100) * 113.1} 113.1`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[9px] font-bold text-gray-900">{bottomCardsData.traffic.google}%</span>
+              </div>
             </div>
-            <span className="font-medium text-gray-900">30%</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">Organik</span>
-            </div>
-            <span className="font-medium text-gray-900">15%</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-              <span className="text-gray-600">Reklam</span>
-            </div>
-            <span className="font-medium text-gray-900">10%</span>
           </div>
         </div>
       </div>

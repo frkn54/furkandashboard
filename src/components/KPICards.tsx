@@ -1,5 +1,5 @@
-import { DollarSign, ShoppingCart, Package, TrendingDown, Truck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { DollarSign, ShoppingCart, TrendingDown, Truck } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,6 +10,23 @@ interface KPICardsProps {
   onEndDateChange: (date: string) => void;
 }
 
+function generateMockStats(startDate: string, endDate: string) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const seed = start.getDate() + end.getDate() + diffDays;
+  const baseMultiplier = diffDays / 7;
+
+  const totalSales = Math.floor((15000 + (seed * 127) % 8000) * baseMultiplier);
+  const netSales = Math.floor(totalSales * 0.82);
+  const orderCount = Math.floor((45 + (seed * 13) % 30) * baseMultiplier);
+  const returnRate = 5 + (seed % 8);
+  const pendingShipments = Math.floor((8 + (seed * 7) % 12) * Math.min(baseMultiplier, 2));
+
+  return { totalSales, netSales, orderCount, returnRate, pendingShipments };
+}
+
 export default function KPICards({ startDate, endDate, onStartDateChange, onEndDateChange }: KPICardsProps) {
   const [stats, setStats] = useState({
     totalSales: 0,
@@ -18,7 +35,10 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
     returnRate: 0,
     pendingShipments: 0,
   });
+  const [hasRealData, setHasRealData] = useState(false);
   const { user } = useAuth();
+
+  const mockStats = useMemo(() => generateMockStats(startDate, endDate), [startDate, endDate]);
 
   useEffect(() => {
     if (user) {
@@ -38,25 +58,33 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
 
     if (error) {
       console.error('Error loading stats:', error);
+      setHasRealData(false);
       return;
     }
 
-    const totalSales = orders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
-    const completedOrders = orders.filter((o) => o.status === 'completed');
-    const returnedOrders = orders.filter((o) => o.status === 'returned');
-    const pendingOrders = orders.filter((o) => o.status === 'pending');
+    if (orders && orders.length > 0) {
+      const totalSales = orders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
+      const completedOrders = orders.filter((o) => o.status === 'completed');
+      const returnedOrders = orders.filter((o) => o.status === 'returned');
+      const pendingOrders = orders.filter((o) => o.status === 'pending');
 
-    const netSales = completedOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
-    const returnRate = orders.length > 0 ? (returnedOrders.length / orders.length) * 100 : 0;
+      const netSales = completedOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
+      const returnRate = orders.length > 0 ? (returnedOrders.length / orders.length) * 100 : 0;
 
-    setStats({
-      totalSales,
-      netSales,
-      orderCount: orders.length,
-      returnRate,
-      pendingShipments: pendingOrders.length,
-    });
+      setStats({
+        totalSales,
+        netSales,
+        orderCount: orders.length,
+        returnRate,
+        pendingShipments: pendingOrders.length,
+      });
+      setHasRealData(true);
+    } else {
+      setHasRealData(false);
+    }
   };
+
+  const displayStats = hasRealData ? stats : mockStats;
 
   const handlePresetClick = (days: number) => {
     const end = new Date();
@@ -70,64 +98,64 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
   const cards = [
     {
       title: 'Toplam Satış',
-      value: `₺${stats.totalSales.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`,
-      color: 'from-blue-500 to-blue-600',
+      value: `₺${displayStats.totalSales.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`,
+      color: 'bg-blue-500',
       icon: DollarSign,
     },
     {
       title: 'Net Satış',
-      value: `₺${stats.netSales.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`,
-      color: 'from-green-500 to-green-600',
+      value: `₺${displayStats.netSales.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`,
+      color: 'bg-green-500',
       icon: DollarSign,
     },
     {
-      title: 'Sipariş Sayısı',
-      value: stats.orderCount.toString(),
-      color: 'from-slate-500 to-slate-600',
+      title: 'Sipariş',
+      value: displayStats.orderCount.toString(),
+      color: 'bg-slate-500',
       icon: ShoppingCart,
     },
     {
-      title: 'İade Sayısı',
-      value: `%${stats.returnRate.toFixed(1)}`,
-      color: 'from-orange-500 to-orange-600',
+      title: 'İade',
+      value: `%${displayStats.returnRate.toFixed(1)}`,
+      color: 'bg-orange-500',
       icon: TrendingDown,
     },
     {
-      title: 'Gönderilecek Siparişler',
-      value: stats.pendingShipments.toString(),
-      color: 'from-rose-500 to-rose-600',
+      title: 'Bekleyen',
+      value: displayStats.pendingShipments.toString(),
+      color: 'bg-rose-500',
       icon: Truck,
     },
   ];
 
   return (
-    <div className="mb-3">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-gray-700 px-1">Temel Metrikler</h3>
-        <div className="flex items-center gap-2">
+    <div className="h-[90px]">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-[10px] font-bold text-gray-700">Temel Metrikler</h3>
+        <div className="flex items-center gap-1.5">
           <input
             type="date"
             value={startDate}
             onChange={(e) => onStartDateChange(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <span className="text-gray-400 text-xs">-</span>
+          <span className="text-gray-400 text-[10px]">-</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => onEndDateChange(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <div className="flex items-center gap-1 ml-2">
+          <div className="flex items-center gap-0.5 ml-1">
             {[
-              { label: 'Bugün', days: 0 },
-              { label: '7 Gün', days: 7 },
-              { label: '30 Gün', days: 30 },
+              { label: 'Bugun', days: 0 },
+              { label: '7G', days: 7 },
+              { label: '30G', days: 30 },
             ].map((preset) => (
               <button
                 key={preset.label}
                 onClick={() => handlePresetClick(preset.days)}
-                className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-1.5 py-0.5 text-[10px] text-gray-600 hover:bg-gray-100 rounded transition-colors"
               >
                 {preset.label}
               </button>
@@ -135,19 +163,18 @@ export default function KPICards({ startDate, endDate, onStartDateChange, onEndD
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-5 gap-[5px] h-[70px]">
         {cards.map((card, index) => (
           <div
             key={index}
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-transform hover:scale-105"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex items-center gap-2 transition-transform hover:scale-[1.02]"
           >
-            <div className={`h-1.5 bg-gradient-to-r ${card.color}`}></div>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <card.icon className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-1">{card.value}</h3>
-              <p className="text-sm text-gray-500">{card.title}</p>
+            <div className={`w-8 h-8 ${card.color} rounded-md flex items-center justify-center flex-shrink-0`}>
+              <card.icon className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[9px] text-gray-500 truncate">{card.title}</p>
+              <h3 className="text-sm font-bold text-gray-900 truncate">{card.value}</h3>
             </div>
           </div>
         ))}

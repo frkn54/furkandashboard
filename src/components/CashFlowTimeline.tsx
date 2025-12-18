@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, X, Edit2, Trash2, Plus } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, X, CreditCard as Edit2, Trash2, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,6 +15,16 @@ interface CashFlowTimelineProps {
   onPageChange?: (page: string) => void;
 }
 
+interface EconomicData {
+  usdTry: string;
+  goldOz: string;
+  btcUsd: string;
+  silverOz: string;
+  interestRate: string;
+  inflation: string;
+  bist100: string;
+}
+
 export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps = {}) {
   const [showModal, setShowModal] = useState(false);
   const [showEntriesModal, setShowEntriesModal] = useState(false);
@@ -24,7 +34,43 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
   const [modalNote, setModalNote] = useState('');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [cashFlowData, setCashFlowData] = useState<Record<string, CashFlowEntry[]>>({});
+  const [economicData, setEconomicData] = useState<EconomicData>({
+    usdTry: '34.85',
+    goldOz: '2,648',
+    btcUsd: '106,420',
+    silverOz: '30.52',
+    interestRate: '%50',
+    inflation: '%47.1',
+    bist100: '289',
+  });
   const { user } = useAuth();
+
+  useEffect(() => {
+    fetchEconomicData();
+  }, []);
+
+  const fetchEconomicData = async () => {
+    try {
+      const [forexRes, cryptoRes] = await Promise.all([
+        fetch('https://api.exchangerate-api.com/v4/latest/USD'),
+        fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'),
+      ]);
+
+      if (forexRes.ok) {
+        const forexData = await forexRes.json();
+        const usdTry = forexData.rates?.TRY?.toFixed(2) || '34.85';
+        setEconomicData(prev => ({ ...prev, usdTry }));
+      }
+
+      if (cryptoRes.ok) {
+        const cryptoData = await cryptoRes.json();
+        const btcUsd = cryptoData.bitcoin?.usd?.toLocaleString('en-US') || '106,420';
+        setEconomicData(prev => ({ ...prev, btcUsd }));
+      }
+    } catch (error) {
+      console.log('Economic data fetch error, using defaults');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -212,43 +258,35 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
   const days = generate35Days();
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-3">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 h-[90px]">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => onPageChange?.('finance-cashflow')}
-            className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium border border-gray-200"
+            className="px-2 py-1 text-[10px] text-gray-600 hover:bg-gray-100 rounded-md transition-colors font-medium border border-gray-200"
           >
-            Tüm Zamanlar
+            Tum Zamanlar
           </button>
-          <span className="text-sm font-semibold text-gray-700">
+          <span className="text-[10px] font-semibold text-gray-700">
             {getCurrentQuarterInfo()}
           </span>
-          <span className="text-sm font-bold text-gray-900">
+          <span className="text-[10px] font-bold text-gray-900">
             {getCurrentMonthName()}
           </span>
-        </div>
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600">Para Girişi</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div>
-            <span className="text-gray-600">Para Çıkışı</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
-            <span className="text-gray-600">Her İkisi</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
-            <span className="text-gray-600">İşlem Yok</span>
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          <div className="flex items-center gap-3 text-[10px]">
+            <span className="text-gray-600">USD/TRY: <span className="font-semibold text-gray-900">{economicData.usdTry}</span></span>
+            <span className="text-gray-600">Altin: <span className="font-semibold text-gray-900">${economicData.goldOz}</span></span>
+            <span className="text-gray-600">BTC: <span className="font-semibold text-gray-900">${economicData.btcUsd}</span></span>
+            <span className="text-gray-600">Gumus: <span className="font-semibold text-gray-900">${economicData.silverOz}</span></span>
+            <span className="text-gray-600">Faiz: <span className="font-semibold text-gray-900">{economicData.interestRate}</span></span>
+            <span className="text-gray-600">Enf: <span className="font-semibold text-gray-900">{economicData.inflation}</span></span>
+            <span className="text-gray-600">BIST: <span className="font-semibold text-gray-900">${economicData.bist100}</span></span>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-1 h-[42px]">
         {days.map((day) => {
           const entries = cashFlowData[day.date] || [];
           const hasIncome = entries.some(e => e.type === 'income');
@@ -259,9 +297,9 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
             <button
               key={day.date}
               onClick={() => handleDayClick(day.date)}
-              className={`flex-1 aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
+              className={`flex-1 rounded-md border transition-all hover:scale-105 ${
                 day.isToday
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
+                  ? 'border-blue-500 bg-blue-50 shadow-sm'
                   : hasBoth
                   ? 'border-blue-400 bg-blue-50'
                   : hasIncome
@@ -270,17 +308,14 @@ export default function CashFlowTimeline({ onPageChange }: CashFlowTimelineProps
                   ? 'border-orange-500 bg-orange-50'
                   : 'border-gray-200 bg-gray-50'
               }`}
-              title={`${day.dayNum} - ${entries.length > 0 ? `${entries.length} işlem` : 'İşlem yok'}`}
+              title={`${day.dayNum} - ${entries.length > 0 ? `${entries.length} islem` : 'Islem yok'}`}
             >
               <div className="flex flex-col items-center justify-center h-full">
-                <span className={`text-sm font-bold ${
+                <span className={`text-[10px] font-bold ${
                   day.isToday ? 'text-blue-600' : 'text-gray-700'
                 }`}>
                   {day.dayNum}
                 </span>
-                {entries.length > 1 && (
-                  <span className="text-[9px] text-gray-400 font-medium">{entries.length}</span>
-                )}
               </div>
             </button>
           );
