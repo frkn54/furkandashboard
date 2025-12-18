@@ -12,7 +12,7 @@ interface DashboardWidgetsProps {
 export default function DashboardWidgets({ startDate, endDate }: DashboardWidgetsProps) {
   const [salesData, setSalesData] = useState<{ date: string; amount: number }[]>([]);
   const [returnsData, setReturnsData] = useState<{ date: string; amount: number }[]>([]);
-  const [topProducts, setTopProducts] = useState<{ name: string; sales: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string; sales: number; image_url: string }[]>([]);
   const [graphView, setGraphView] = useState<'sales' | 'returns' | 'both'>('sales');
   const { user } = useAuth();
 
@@ -81,7 +81,7 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
 
     const { data: products } = await supabase
       .from('products')
-      .select('name')
+      .select('name, image_url')
       .eq('user_id', user.id)
       .limit(5);
 
@@ -90,6 +90,7 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
         products.map((p, i) => ({
           name: p.name,
           sales: Math.floor(Math.random() * 100) + 10,
+          image_url: p.image_url || 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=400&fit=crop',
         }))
       );
     } else {
@@ -218,7 +219,15 @@ export default function DashboardWidgets({ startDate, endDate }: DashboardWidget
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-gray-400">#{index + 1}</span>
-                  <span className="text-xs text-gray-700">{product.name}</span>
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-7 h-7 rounded object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=400&fit=crop';
+                    }}
+                  />
+                  <span className="text-xs text-gray-700 truncate">{product.name}</span>
                 </div>
                 <span className="text-xs font-semibold text-blue-600">{product.sales}</span>
               </div>
